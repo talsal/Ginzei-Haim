@@ -3,13 +3,15 @@
 // שימוש: YT_API_KEY=... node scripts/sync.mjs
 // אין תלויות חיצוניות (Node 18 ומעלה).
 
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, writeFile, appendFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CONFIG_PATH = path.join(ROOT, "config.json");
 const OUT_PATH = path.join(ROOT, "data", "lessons.js");
+const SEEN_PATH = path.join(ROOT, "data", "seen.json");
+const QUICK = process.env.QUICK === "1";
 const API = "https://www.googleapis.com/youtube/v3/";
 
 const KEY = process.env.YT_API_KEY;
@@ -69,6 +71,26 @@ if (!ch.items || !ch.items.length) throw new Error("הערוץ לא נמצא: " 
 const channel = ch.items[0];
 const uploadsId = channel.contentDetails.relatedPlaylists.uploads;
 console.log("ערוץ:", channel.snippet.title);
+
+async function setOutput(k, v) {
+  if (process.env.GITHUB_OUTPUT) await appendFile(process.env.GITHUB_OUTPUT, `${k}=${v}\n`);
+}
+
+// ---- בדיקה מהירה: האם הועלה סרטון חדש מאז הסנכרון הקודם? (2 יחידות מכסה) ----
+if (QUICK) {
+  let seen = null;
+  try { seen = new Set(JSON.parse(await readFile(SEEN_PATH, "utf8"))); } catch {}
+  if (seen) {
+    const first = await api("playlistItems", { part: "contentDetails", playlistId: uploadsId, maxResults: 50 });
+    const fresh = (first.items || []).map(i => i.contentDetails && i.contentDetails.videoId).filter(id => id && !seen.has(id));
+    if (!fresh.length) {
+      console.log("אין סרטונים חדשים בערוץ, מדלג.");
+      await setOutput("skip", "true");
+      process.exit(0);
+    }
+    console.log("נמצאו סרטונים חדשים:", fresh.join(", "));
+  }
+}
 
 // ---- 2. הפלייליסטים ----
 const exclude = new Set(config.excludePlaylistIds || []);
@@ -206,4 +228,6 @@ if (strip(prevText).includes(strip(json))) {
   await writeFile(OUT_PATH, "// נוצר אוטומטית ע\"י scripts/sync.mjs, אין לערוך ידנית\nwindow.LESSONS_DATA = " + json + ";\n");
   console.log(`נכתב ${OUT_PATH}: ${playlists.length} פלייליסטים, ${count} שיעורים (${count - previousCount >= 0 ? "+" : ""}${count - previousCount})`);
 }
+await writeFile(SEEN_PATH, JSON.stringify([...new Set(uploadIds)].sort()));
+await setOutput("skip", "false");
 console.log("יחידות מכסה שנוצלו:", quota, "(מתוך 10,000 ביום)");

@@ -2,7 +2,8 @@ name: סנכרון שיעורים ופרסום
 
 on:
   schedule:
-    - cron: "0 3 * * *"   # כל יום ב-06:00 שעון ישראל (קיץ) / 05:00 (חורף)
+    - cron: "0 3 * * *"     # סנכרון מלא כל בוקר (06:00 קיץ / 05:00 חורף בישראל)
+    - cron: "*/15 * * * *"  # בדיקה מהירה כל ~15 דקות: מסנכרן רק אם הועלה סרטון חדש
   workflow_dispatch: {}     # הפעלה ידנית מלשונית Actions
   push:
     branches: [main]
@@ -30,8 +31,11 @@ jobs:
           node-version: 22
 
       - name: משיכת שיעורים מיוטיוב
+        id: sync
         env:
           YT_API_KEY: ${{ secrets.YT_API_KEY }}
+          # בדיקה מהירה רק בריצות התדירות. כל ריצה אחרת (בוקר, ידנית, דחיפה) היא סנכרון מלא.
+          QUICK: ${{ github.event.schedule == '*/15 * * * *' && '1' || '0' }}
         run: |
           if [ -z "$YT_API_KEY" ]; then
             echo "::warning::לא הוגדר הסוד YT_API_KEY, מדלג על הסנכרון"
@@ -40,6 +44,7 @@ jobs:
           fi
 
       - name: שמירת הנתונים בריפו
+        if: steps.sync.outputs.skip != 'true'
         run: |
           if [ -n "$(git status --porcelain data/)" ]; then
             git config user.name "github-actions[bot]"
@@ -51,11 +56,14 @@ jobs:
             echo "אין שיעורים חדשים"
           fi
 
-      - uses: actions/configure-pages@v5
+      - if: steps.sync.outputs.skip != 'true'
+        uses: actions/configure-pages@v5
 
-      - uses: actions/upload-pages-artifact@v3
+      - if: steps.sync.outputs.skip != 'true'
+        uses: actions/upload-pages-artifact@v3
         with:
           path: .
 
-      - id: deployment
+      - if: steps.sync.outputs.skip != 'true'
+        id: deployment
         uses: actions/deploy-pages@v4
