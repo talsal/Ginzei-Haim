@@ -1,0 +1,25 @@
+{
+  "siteTitle": "שיעורי הרב יואל חקון",
+  "siteSubtitle": "כל השיעורים במקום אחד",
+  "siteDescription": "כל השיעורים של הרב יואל מיוטיוב, מסודרים לפי נושאים, עם חיפוש ונגן.",
+  "channelHandle": "@hachiem.vehashalom",
+  "channelId": "UCjCwvHzEeN0dGO4eaaQi6KQ",
+  "minDurationSeconds": 0,
+  "excludePlaylistIds": [],
+  "categories": [
+    {
+      "key": "other",
+      "label": "כל הנושאים",
+      "color": "#3b82f6",
+      "playlistIds": [],
+      "keywords": []
+    }
+  ],
+  "filter": {
+    "_comment": "משאירים רק שיעורים שהכותרת או התיאור שלהם מכילים אחת מהמילים, או שנמצאים באחד הפלייליסטים. ריק = הכול.",
+    "keywords": [
+      "יואל חקון"
+    ],
+    "playlistIds": []
+  }
+}
