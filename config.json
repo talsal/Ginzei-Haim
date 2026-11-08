@@ -8,9 +8,49 @@
   "excludePlaylistIds": [],
   "categories": [
     {
-      "key": "other",
-      "label": "כל הנושאים",
+      "key": "seuda",
+      "label": "סעודה, ברכות ויחודים",
+      "color": "#f59e0b",
+      "playlistIds": [],
+      "keywords": [
+        "מטבע ברכה",
+        "סדר היחודים",
+        "סעודה"
+      ]
+    },
+    {
+      "key": "chagim",
+      "label": "חגים ומועדים",
+      "color": "#a855f7",
+      "playlistIds": [],
+      "keywords": [
+        "חגים",
+        "פורים",
+        "חנוכה",
+        "ספירת העומר",
+        "שבועות",
+        "סוכות",
+        "פסח",
+        "הגדה",
+        "ראש השנה",
+        "כיפור"
+      ]
+    },
+    {
+      "key": "tefila",
+      "label": "תפילה וכוונות",
       "color": "#3b82f6",
+      "playlistIds": [],
+      "keywords": [
+        "תפילה",
+        "קריאת שמע",
+        "כוונות"
+      ]
+    },
+    {
+      "key": "other",
+      "label": "כללי ושונות",
+      "color": "#22c55e",
       "playlistIds": [],
       "keywords": []
     }
@@ -21,5 +61,6 @@
       "יואל חקון"
     ],
     "playlistIds": []
-  }
+  },
+  "stripPrefix": "הרב יואל חקון - "
 }

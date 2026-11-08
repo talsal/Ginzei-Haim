@@ -172,6 +172,12 @@ if (previousCount > 20 && count < previousCount * 0.5) {
   throw new Error(`נמצאו רק ${count} סרטונים לעומת ${previousCount} בסנכרון הקודם. עוצר כדי לא למחוק שיעורים.`);
 }
 
+// ---- הסרת קידומת קבועה מהשמות המוצגים ----
+const prefix = config.stripPrefix || "";
+const clean = t => (prefix && t.startsWith(prefix) ? t.slice(prefix.length) : t).trim() || t;
+for (const v of Object.values(videos)) v.title = clean(v.title);
+for (const p of playlists) p.name = clean(p.name);
+
 // ---- 6. כתיבה ----
 const sortedVideos = Object.fromEntries(Object.keys(videos).sort().map(id => [id, videos[id]]));
 const out = {
