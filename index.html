@@ -769,7 +769,6 @@
     כאן תמצאו את כל השיעורים שהרב העלה ליוטיוב, מסודרים לפי נושאים.
     בחרו נושא למטה, או חפשו שיעור בתיבת החיפוש. שיעורים חדשים מתווספים לאתר אוטומטית.
   </p>
-  <a class="subscribe-btn" id="subscribeBtn" href="#" target="_blank" rel="noopener" style="display:none"><span aria-hidden="true">▶️</span> הירשמו לערוץ היוטיוב</a>
 </div>
 
 <div class="continue-row" id="continueRow"></div>
@@ -1476,11 +1475,6 @@ themeToggleBtn.onclick = () => {
 function renderStats(){
   const total = Object.keys(VIDEOS).length;
   $("statsLine").textContent = total ? `${playlists.length} נושאים · ${total} שיעורים` : "";
-  if(DATA.channel && DATA.channel.url){
-    const b = $("subscribeBtn");
-    b.href = DATA.channel.url + "?sub_confirmation=1";
-    b.style.display = "";
-  }
   if(DATA.generatedAt){
     $("updatedLine").textContent = "עודכן לאחרונה: " + new Date(DATA.generatedAt).toLocaleDateString("he-IL");
   }
