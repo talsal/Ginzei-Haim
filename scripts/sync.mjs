@@ -112,7 +112,7 @@ const allIds = [...new Set([...uploadIds, ...Object.values(playlistIds).flat()])
 const videos = {};
 for (let i = 0; i < allIds.length; i += 50) {
   const batch = allIds.slice(i, i + 50);
-  const data = await api("videos", { part: "snippet,contentDetails,status", id: batch.join(",") });
+  const data = await api("videos", { part: "snippet,contentDetails,status,statistics", id: batch.join(",") });
   for (const v of data.items || []) {
     const privacy = v.status && v.status.privacyStatus;
     if (privacy !== "public" && privacy !== "unlisted") continue;
@@ -124,6 +124,7 @@ for (let i = 0; i < allIds.length; i += 50) {
       description: v.snippet.description || "",
       duration: dur.text,
       published: (v.snippet.publishedAt || "").slice(0, 10),
+      views: Number((v.statistics && v.statistics.viewCount) || 0),
     };
   }
 }
@@ -199,6 +200,17 @@ const prefix = config.stripPrefix || "";
 const clean = t => (prefix && t.startsWith(prefix) ? t.slice(prefix.length) : t).trim() || t;
 for (const v of Object.values(videos)) v.title = clean(v.title);
 for (const p of playlists) p.name = clean(p.name);
+
+// ---- מקום ונושא לכל פלייליסט, לפי רשימת המקומות ב-config ----
+const places = config.places || [];
+for (const p of playlists) {
+  const place = places.find(pl => p.name.includes(pl));
+  p.place = place || "כללי";
+  const topic = place
+    ? p.name.split(/\s+-\s+/).filter(seg => !seg.trim().startsWith(place)).join(" - ").trim()
+    : p.name;
+  p.topic = topic || p.name;
+}
 
 // ---- 6. כתיבה ----
 const sortedVideos = Object.fromEntries(Object.keys(videos).sort().map(id => [id, videos[id]]));

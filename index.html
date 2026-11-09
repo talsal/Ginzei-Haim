@@ -277,13 +277,25 @@
     margin:0;
   }
   .tabs{
-    display:flex;
-    flex-direction:column;
-    gap:8px;
-    max-width:700px;
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+    gap:10px;
+    max-width:1200px;
     margin:0 auto;
     padding:14px 16px;
   }
+  .tabs.view-rows{grid-template-columns:1fr; max-width:760px;}
+  .tab-main{display:flex; flex-direction:column; gap:5px; min-width:0; flex:1;}
+  .tab-main .tab-name{font-weight:600; line-height:1.35;}
+  .tab-meta{font-size:.78rem; color:var(--muted); display:flex; gap:6px; flex-wrap:wrap; align-items:center;}
+  .tab.active .tab-name,.tab.active .tab-meta{color:#fff;}
+  .tab.active .tab-place{background:rgba(255,255,255,.25); color:#fff;}
+  .tab-place{background:color-mix(in srgb, var(--accent2) 16%, transparent); color:var(--accent2); padding:1px 8px; border-radius:999px; font-size:.72rem; font-weight:600;}
+  .pl-bar, .groupby{display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; max-width:1200px; margin:0 auto; padding:8px 16px 0; font-size:.9rem; color:var(--muted);}
+  .seg{display:inline-flex; border:1px solid var(--border); border-radius:999px; overflow:hidden; background:var(--card);}
+  .seg button{border:none; background:transparent; color:var(--text); padding:7px 16px; font-size:.88rem; cursor:pointer; font-family:inherit;}
+  .seg button.active{background:var(--accent2); color:var(--accent2-contrast); font-weight:700;}
+  .pl-bar select{background:var(--card); color:var(--text); border:1px solid var(--border); border-radius:10px; padding:7px 10px; font-family:inherit; font-size:.88rem;}
   .tab{
     display:flex;
     align-items:center;
@@ -761,6 +773,13 @@
 <div class="continue-row" id="continueRow"></div>
 
 <div class="fav-row" id="favRow"></div>
+<div class="groupby" id="groupBy" role="group" aria-label="קיבוץ השיעורים">
+  <span>קבץ לפי:</span>
+  <div class="seg">
+    <button type="button" id="gbTopic" class="active">נושא</button>
+    <button type="button" id="gbPlace">מקום</button>
+  </div>
+</div>
 <div class="categories" id="categories"></div>
 
 <div class="search-bar">
@@ -778,6 +797,9 @@
     <option value="default">לפי סדר הפלייליסט</option>
     <option value="date-desc">מהחדש לישן</option>
     <option value="date-asc">מהישן לחדש</option>
+    <option value="number-asc">לפי מספר שיעור (עולה)</option>
+    <option value="number-desc">לפי מספר שיעור (יורד)</option>
+    <option value="views-desc">הכי נצפים</option>
     <option value="title-asc">לפי א-ב</option>
     <option value="duration-asc">לפי אורך (מהקצר לארוך)</option>
     <option value="duration-desc">לפי אורך (מהארוך לקצר)</option>
@@ -792,6 +814,19 @@
 <div class="category-header" id="categoryHeader" style="display:none">
   <button id="backToCategories" class="back-to-categories" type="button"><span aria-hidden="true">→</span> כל הנושאים</button>
   <h2 class="category-header-label" id="categoryHeaderLabel"></h2>
+</div>
+<div class="pl-bar" id="plBar" style="display:none">
+  <label for="plSort">מיון הפלייליסטים:</label>
+  <select id="plSort">
+    <option value="default">לפי סדר האתר</option>
+    <option value="name">לפי א-ב</option>
+    <option value="count">הכי הרבה שיעורים</option>
+    <option value="latest">עודכן לאחרונה</option>
+  </select>
+  <div class="seg" role="group" aria-label="תצוגת הפלייליסטים">
+    <button type="button" id="plCols" class="active" title="טורים">▦ טורים</button>
+    <button type="button" id="plRows" title="שורות">☰ שורות</button>
+  </div>
 </div>
 <div class="tabs" id="tabs" style="display:none" aria-live="polite"></div>
 
@@ -851,7 +886,28 @@ const VIDEOS = DATA.videos || {};
 const lessonOf = (id) => ({ videoId: id, ...VIDEOS[id] });
 const playlists = (DATA.playlists || []).map(p => ({ ...p, lessons: p.videoIds.filter(id => VIDEOS[id]).map(lessonOf) }));
 const UPLOADS = (DATA.uploads || []).filter(id => VIDEOS[id]).map(lessonOf);
-const CATEGORIES = DATA.categories || [];
+const GROUP_ID = "__group__";
+const GROUPBY_KEY = "rav-yoel-groupby";
+const PLVIEW_KEY = "rav-yoel-plview";
+const PLSORT_KEY = "rav-yoel-plsort";
+const PLACE_COLORS = ["#3b82f6", "#f59e0b", "#a855f7", "#22c55e", "#ef4444", "#14b8a6", "#ec4899", "#64748b"];
+function lsGet(k, d){ try{ return localStorage.getItem(k) || d; } catch(e){ return d; } }
+function lsSet(k, v){ try{ localStorage.setItem(k, v); } catch(e){} }
+let groupBy = lsGet(GROUPBY_KEY, "topic") === "place" ? "place" : "topic";
+let plView = lsGet(PLVIEW_KEY, "cols") === "rows" ? "rows" : "cols";
+let plSort = lsGet(PLSORT_KEY, "default");
+let CATEGORIES = [];
+function groupOf(pl){ return groupBy === "place" ? (pl.place || "כללי") : pl.category; }
+function rebuildGroups(){
+  if(groupBy === "place"){
+    const counts = new Map();
+    playlists.forEach(p => { const k = groupOf(p); counts.set(k, (counts.get(k) || 0) + p.lessons.length); });
+    CATEGORIES = [...counts.entries()].sort((a, b) => b[1] - a[1])
+      .map(([k], i) => ({ key: k, label: k, color: PLACE_COLORS[i % PLACE_COLORS.length] }));
+  } else {
+    CATEGORIES = DATA.categories || [];
+  }
+}
 const ALL_ID = "__all__";
 const FAVORITES_ID = "__favorites__";
 const NEW_DAYS = 10;
@@ -860,7 +916,7 @@ const BOOK_ICON = (c) => `<svg width="26" height="26" viewBox="0 0 24 24"><path 
 function escapeHtml(s){
   return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
-function categoryOf(pl){ return pl ? pl.category : null; }
+function categoryOf(pl){ return pl ? groupOf(pl) : null; }
 function findPlaylist(id){ return playlists.find(p => p.id === id); }
 
 let currentCategory = null;
@@ -876,7 +932,9 @@ function getLessonParamFromModal(){
 }
 function buildShareURL(){
   const params = new URLSearchParams();
+  if(groupBy === "place") params.set("g", "place");
   if(currentPlaylistId === FAVORITES_ID) params.set("playlist", "favorites");
+  else if(currentPlaylistId === GROUP_ID && currentCategory) { params.set("playlist", "group"); params.set("cat", currentCategory); }
   else if(currentPlaylistId === ALL_ID) params.set("playlist", "all");
   else if(currentPlaylistId && !homeView) params.set("playlist", currentPlaylistId);
   const id = getLessonParamFromModal();
@@ -890,6 +948,13 @@ function replaceSongURL(){ history.replaceState(null, "", buildShareURL()); }
 function listFor(playlistId){
   if(playlistId === FAVORITES_ID) return getFavoriteSongs();
   if(playlistId === ALL_ID) return UPLOADS.slice();
+  if(playlistId === GROUP_ID){
+    const seen = new Set(), out = [];
+    playlists.filter(p => groupOf(p) === currentCategory).forEach(p => p.lessons.forEach(s => {
+      if(!seen.has(s.videoId)){ seen.add(s.videoId); out.push({ ...s, playlistName: p.topic && groupBy === "place" ? p.topic : p.name }); }
+    }));
+    return out;
+  }
   const pl = findPlaylist(playlistId);
   return pl ? pl.lessons.map(s => ({ ...s, playlistName: pl.name })) : [];
 }
@@ -910,8 +975,12 @@ function applyStateFromURL(){
   const playlistParam = params.get("playlist");
   const lessonParam = params.get("v") || params.get("song");
   homeView = true; currentPlaylistId = null; currentCategory = null;
+  const g = params.get("g") === "place" ? "place" : (params.has("g") ? "topic" : groupBy);
+  if(g !== groupBy){ groupBy = g; lsSet(GROUPBY_KEY, g); }
+  rebuildGroups();
 
-  if(playlistParam === "favorites"){ currentPlaylistId = FAVORITES_ID; homeView = false; }
+  if(playlistParam === "group" && params.get("cat")){ currentCategory = params.get("cat"); currentPlaylistId = GROUP_ID; homeView = false; }
+  else if(playlistParam === "favorites"){ currentPlaylistId = FAVORITES_ID; homeView = false; }
   else if(playlistParam === "all"){ currentPlaylistId = ALL_ID; homeView = false; }
   else if(playlistParam && findPlaylist(playlistParam)){
     currentPlaylistId = playlistParam;
@@ -1011,6 +1080,18 @@ function durationToSeconds(d){
   if(parts.length === 2) return parts[0]*60 + parts[1];
   return parts[0] || 0;
 }
+function numberOf(title){
+  const m = /שיעור\s*0*(\d+)/.exec(title || "");
+  return m ? Number(m[1]) : Number.MAX_SAFE_INTEGER;
+}
+function latestOf(pl){ return pl.lessons.reduce((m, s) => (s.published && s.published > m ? s.published : m), ""); }
+function sortPlaylists(list){
+  const arr = list.slice();
+  if(plSort === "name") arr.sort((a, b) => (a.topic || a.name).localeCompare(b.topic || b.name, "he"));
+  else if(plSort === "count") arr.sort((a, b) => b.lessons.length - a.lessons.length);
+  else if(plSort === "latest") arr.sort((a, b) => latestOf(b).localeCompare(latestOf(a)));
+  return arr;
+}
 function applySort(songs){
   const mode = sortEl.value;
   const arr = songs.slice();
@@ -1018,6 +1099,9 @@ function applySort(songs){
   if(mode === "title-asc") arr.sort((a, b) => a.title.localeCompare(b.title, "he"));
   else if(mode === "duration-asc") arr.sort((a, b) => durationToSeconds(a.duration) - durationToSeconds(b.duration));
   else if(mode === "duration-desc") arr.sort((a, b) => durationToSeconds(b.duration) - durationToSeconds(a.duration));
+  else if(mode === "number-asc") arr.sort((a, b) => numberOf(a.title) - numberOf(b.title) || pub(a).localeCompare(pub(b)));
+  else if(mode === "number-desc") arr.sort((a, b) => numberOf(b.title) - numberOf(a.title) || pub(b).localeCompare(pub(a)));
+  else if(mode === "views-desc") arr.sort((a, b) => (b.views || 0) - (a.views || 0));
   else if(mode === "date-desc") arr.sort((a, b) => pub(b).localeCompare(pub(a)));
   else if(mode === "date-asc") arr.sort((a, b) => pub(a).localeCompare(pub(b)));
   return arr;
@@ -1031,15 +1115,15 @@ function normalize(s){
 function renderCategories(){
   categoriesEl.innerHTML = "";
   CATEGORIES.forEach(cat => {
-    const count = playlists.filter(p => p.category === cat.key).length;
+    const count = playlists.filter(p => groupOf(p) === cat.key).length;
     if(!count) return;
     const chip = document.createElement("button");
     chip.className = "category-chip" + (currentCategory === cat.key ? " active" : "");
     chip.innerHTML = `<span class="chip-icon" aria-hidden="true" style="background:color-mix(in srgb, ${cat.color} 16%, transparent)">${BOOK_ICON(cat.color)}</span><span>${escapeHtml(cat.label)}</span>`;
     chip.onclick = () => {
       currentCategory = cat.key;
-      const visible = playlists.filter(pl => pl.category === currentCategory);
-      if(visible.length) currentPlaylistId = visible[0].id;
+      const visible = playlists.filter(pl => groupOf(pl) === currentCategory);
+      currentPlaylistId = visible.length > 1 ? GROUP_ID : (visible.length ? visible[0].id : null);
       homeView = false; searchEl.value = ""; visibleLimit = PAGE_SIZE;
       renderAll(); pushPlaylistURL();
     };
@@ -1087,13 +1171,25 @@ function renderContinueRow(){
 function renderTabs(){
   tabsEl.innerHTML = "";
   const searching = isSearching();
-  const visiblePlaylists = currentCategory ? playlists.filter(pl => pl.category === currentCategory) : [];
-  visiblePlaylists.forEach(pl => {
+  const inGroup = currentCategory ? playlists.filter(pl => groupOf(pl) === currentCategory) : [];
+  const visiblePlaylists = sortPlaylists(inGroup);
+  tabsEl.classList.toggle("view-rows", plView === "rows");
+
+  const addCard = (id, name, count, latest, place) => {
     const btn = document.createElement("button");
-    btn.className = "tab" + (!searching && pl.id === currentPlaylistId ? " active" : "");
-    btn.innerHTML = `<span class="tab-name">${escapeHtml(pl.name)}</span><span class="tab-count">${pl.lessons.length}</span>`;
-    btn.onclick = () => { currentPlaylistId = pl.id; homeView = false; searchEl.value=""; visibleLimit = PAGE_SIZE; renderAll(); pushPlaylistURL(); };
+    btn.className = "tab" + (!searching && id === currentPlaylistId ? " active" : "");
+    const meta = [place ? `<span class="tab-place">${escapeHtml(place)}</span>` : "", latest ? `עודכן ${escapeHtml(formatDate(latest))}` : ""].filter(Boolean).join("");
+    btn.innerHTML = `<span class="tab-main"><span class="tab-name">${escapeHtml(name)}</span>${meta ? `<span class="tab-meta">${meta}</span>` : ""}</span><span class="tab-count">${count}</span>`;
+    btn.onclick = () => { currentPlaylistId = id; homeView = false; searchEl.value=""; visibleLimit = PAGE_SIZE; renderAll(); pushPlaylistURL(); };
     tabsEl.appendChild(btn);
+  };
+  if(inGroup.length > 1){
+    const all = listFor(GROUP_ID);
+    addCard(GROUP_ID, "כל השיעורים בקבוצה", all.length, all.reduce((m, s) => (s.published > m ? s.published : m), ""), "");
+  }
+  visiblePlaylists.forEach(pl => {
+    const showTopic = groupBy === "place" && pl.topic;
+    addCard(pl.id, showTopic ? pl.topic : pl.name, pl.lessons.length, latestOf(pl), groupBy === "topic" && pl.place && pl.place !== "כללי" ? pl.place : "");
   });
   const cat = CATEGORIES.find(c => c.key === currentCategory);
   categoryHeaderLabelEl.textContent = cat ? cat.label
@@ -1111,6 +1207,8 @@ function updateViewMode(){
   recentSectionEl.style.display = showHome && UPLOADS.length ? "" : "none";
   categoryHeaderEl.style.display = showSubList ? "" : "none";
   tabsEl.style.display = showSubList && tabsEl.children.length > 1 ? "" : "none";
+  $("plBar").style.display = showSubList && tabsEl.children.length > 1 ? "" : "none";
+  $("groupBy").style.display = playlists.length && !searching && (showHome || showSubList) ? "" : "none";
   sortBarEl.style.display = showHome || noData ? "none" : "";
   titleEl.style.display = showHome ? "none" : "";
   descriptionEl.style.display = showHome ? "none" : "";
@@ -1180,6 +1278,11 @@ function renderGrid(){
   } else if(currentPlaylistId === FAVORITES_ID){
     songs = getFavoriteSongs();
     titleEl.textContent = `${songs.length} שיעורים מועדפים`;
+    descriptionEl.textContent = "";
+  } else if(currentPlaylistId === GROUP_ID){
+    songs = listFor(GROUP_ID);
+    const cat = CATEGORIES.find(c => c.key === currentCategory);
+    titleEl.textContent = `${cat ? cat.label : "הקבוצה"} · ${songs.length} שיעורים`;
     descriptionEl.textContent = "";
   } else if(currentPlaylistId === ALL_ID){
     songs = listFor(ALL_ID);
@@ -1381,9 +1484,34 @@ function renderStats(){
   }
 }
 
+function syncGroupControls(){
+  $("gbTopic").classList.toggle("active", groupBy === "topic");
+  $("gbPlace").classList.toggle("active", groupBy === "place");
+  $("plCols").classList.toggle("active", plView === "cols");
+  $("plRows").classList.toggle("active", plView === "rows");
+  $("plSort").value = plSort;
+}
+function setGroupBy(g){
+  if(g === groupBy) return;
+  groupBy = g; lsSet(GROUPBY_KEY, g);
+  rebuildGroups();
+  const pl = findPlaylist(currentPlaylistId);
+  if(pl){ currentCategory = categoryOf(pl); }
+  else if(currentPlaylistId === GROUP_ID){ currentCategory = null; currentPlaylistId = null; homeView = true; }
+  syncGroupControls(); renderAll(); pushPlaylistURL();
+}
+$("gbTopic").onclick = () => setGroupBy("topic");
+$("gbPlace").onclick = () => setGroupBy("place");
+$("plCols").onclick = () => { plView = "cols"; lsSet(PLVIEW_KEY, plView); syncGroupControls(); renderTabs(); };
+$("plRows").onclick = () => { plView = "rows"; lsSet(PLVIEW_KEY, plView); syncGroupControls(); renderTabs(); };
+$("plSort").onchange = (e) => { plSort = e.target.value; lsSet(PLSORT_KEY, plSort); renderTabs(); };
+
 window.addEventListener("popstate", () => { applyStateFromURL(); renderAll(); });
 
+rebuildGroups();
+syncGroupControls();
 applyStateFromURL();
+syncGroupControls();
 renderAll();
 renderStats();
 </script>
