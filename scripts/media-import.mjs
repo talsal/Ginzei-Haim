@@ -68,7 +68,7 @@ async function fetchOldLessons() {
         date: a.lesson_date_gregorian || "",
         duration: a.duration || "",
         audio: a.AudioFileName && dir ? `${dir}/${a.AudioFileName}` : "",
-        pdfs: dir ? (a.PdfFiles || []).filter(Boolean).map((f) => `${dir}/${f}`) : [],
+        pdfs: dir ? [...new Set([...(a.PdfFiles || []), a.PdfFileName].filter(Boolean))].map((f) => `${dir}/${f}`) : [],
       });
     }
     if (page >= (r.meta?.pagination?.pageCount || 1)) break;
