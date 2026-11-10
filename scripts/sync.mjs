@@ -110,6 +110,9 @@ for (const p of rawPlaylists) playlistIds[p.id] = await playlistVideoIds(p.id);
 // ---- 3. פרטי הסרטונים ----
 const allIds = [...new Set([...uploadIds, ...Object.values(playlistIds).flat()])];
 const videos = {};
+// סרטונים שעדיין לא זמינים (שידור חי, שידור מתוכנן, פרטי/בעיבוד). לא מסמנים אותם כ"נראו",
+// כדי שהבדיקה המהירה תנסה שוב כשהם יהפכו לציבוריים.
+const pending = new Set(allIds);
 for (let i = 0; i < allIds.length; i += 50) {
   const batch = allIds.slice(i, i + 50);
   const data = await api("videos", { part: "snippet,contentDetails,status,statistics", id: batch.join(",") });
@@ -117,6 +120,7 @@ for (let i = 0; i < allIds.length; i += 50) {
     const privacy = v.status && v.status.privacyStatus;
     if (privacy !== "public" && privacy !== "unlisted") continue;
     if (v.snippet.liveBroadcastContent === "upcoming" || v.snippet.liveBroadcastContent === "live") continue;
+    pending.delete(v.id);
     const dur = isoDuration(v.contentDetails.duration);
     if (config.minDurationSeconds && dur.seconds && dur.seconds < config.minDurationSeconds) continue;
     videos[v.id] = {
@@ -240,6 +244,7 @@ if (strip(prevText).includes(strip(json))) {
   await writeFile(OUT_PATH, "// נוצר אוטומטית ע\"י scripts/sync.mjs, אין לערוך ידנית\nwindow.LESSONS_DATA = " + json + ";\n");
   console.log(`נכתב ${OUT_PATH}: ${playlists.length} פלייליסטים, ${count} שיעורים (${count - previousCount >= 0 ? "+" : ""}${count - previousCount})`);
 }
-await writeFile(SEEN_PATH, JSON.stringify([...new Set(uploadIds)].sort()));
+if (pending.size) console.log("סרטונים שעדיין לא זמינים (ייבדקו שוב):", [...pending].join(", "));
+await writeFile(SEEN_PATH, JSON.stringify([...new Set(uploadIds)].filter(id => !pending.has(id)).sort()));
 await setOutput("skip", "false");
 console.log("יחידות מכסה שנוצלו:", quota, "(מתוך 10,000 ביום)");
