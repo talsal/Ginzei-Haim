@@ -145,13 +145,13 @@ let pending = targets.filter((l) => missingOf(l).length);
 console.log(`${pending.length} שיעורים עם קבצים שעוד לא ב-R2`);
 if (LIMIT) pending = pending.slice(0, LIMIT);
 
-let copied = 0, failed = 0;
+let copied = 0, failed = 0, dryBytes = 0;
 for (const l of pending) {
   for (const key of missingOf(l)) {
     if (have.has(key)) continue; // PDF משותף שכבר הועלה בסבב הזה
     try {
       const size = await remoteSize(key);
-      if (DRY) { console.log(`[dry] ${key} (${size})`); continue; }
+      if (DRY) { dryBytes += size; have.set(key, size); continue; }
       await copyOne(key);
       const { stdout } = await run("aws", awsArgs("s3api", "head-object", "--bucket", R2_BUCKET, "--key", key, "--output", "json"));
       const got = JSON.parse(stdout).ContentLength;
@@ -166,6 +166,8 @@ for (const l of pending) {
     await sleep(DELAY_MS);
   }
 }
+
+if (DRY) console.log(`בדיקה בלבד: ${(dryBytes / 1e9).toFixed(1)}GB להעתקה, עלות אחסון בערך ${(Math.max(0, dryBytes / 1e9 - 10) * 0.015).toFixed(2)}$ לחודש`);
 
 // ---- 4. data/media.js: מזהה סרטון -> קבצים שקיימים ב-R2 ----
 const files = {};
