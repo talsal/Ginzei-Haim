@@ -4,7 +4,12 @@ on:
   schedule:
     - cron: "0 3 * * *"     # סנכרון מלא כל בוקר (06:00 קיץ / 05:00 חורף בישראל)
     - cron: "7,22,37,52 * * * *"  # בדיקה מהירה כל 15 דקות: מסנכרן רק אם הועלה סרטון חדש
-  workflow_dispatch: {}     # הפעלה ידנית מלשונית Actions
+  workflow_dispatch:        # הפעלה ידנית: מלשונית Actions, או מכפתור הסנכרון של הרב (Google Apps Script)
+    inputs:
+      quick:
+        description: "בדיקה מהירה בלבד (מסנכרן רק אם יש סרטון חדש)"
+        type: boolean
+        default: false
   push:
     branches: [main]
 
@@ -34,8 +39,8 @@ jobs:
         id: sync
         env:
           YT_API_KEY: ${{ secrets.YT_API_KEY }}
-          # בדיקה מהירה רק בריצות התדירות. כל ריצה אחרת (בוקר, ידנית, דחיפה) היא סנכרון מלא.
-          QUICK: ${{ github.event.schedule == '7,22,37,52 * * * *' && '1' || '0' }}
+          # בדיקה מהירה בריצות התדירות ובהפעלה חיצונית עם quick=true. כל ריצה אחרת (בוקר, ידנית, דחיפה) היא סנכרון מלא.
+          QUICK: ${{ (github.event.schedule == '7,22,37,52 * * * *' || inputs.quick == true) && '1' || '0' }}
         run: |
           if [ -z "$YT_API_KEY" ]; then
             echo "::warning::לא הוגדר הסוד YT_API_KEY, מדלג על הסנכרון"
