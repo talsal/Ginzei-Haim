@@ -83,21 +83,21 @@
     min-height:100vh;
     transition:background .2s ease, color .2s ease;
   }
-  /* רקע האתר: נייר צבעי מים + דוגמת סמל "גנזי חיים" (לפי Site bckgnd V2.pdf: דוגמה ב-30%) */
+  /* רקע האתר: נייר צבעי מים + דוגמת סמל "גנזי חיים" (לפי Site bckgnd V3.pdf: נייר ב-85%, דוגמה ב-20%) */
   body::before{
     content:"";
     position:fixed;
     inset:0;
     z-index:-1;
     pointer-events:none;
-    background-image:linear-gradient(rgba(9,14,30,.8),rgba(9,14,30,.8)), url("assets/pattern.jpg?v=2"), url("assets/paper.jpg?v=2");
+    background-image:linear-gradient(rgba(9,14,30,.8),rgba(9,14,30,.8)), url("assets/pattern.jpg?v=3"), url("assets/paper.jpg?v=3");
     background-size:auto, 107px 190px, cover;
     background-position:0 0, 0 0, center;
     background-repeat:no-repeat, repeat, no-repeat;
     background-blend-mode:normal, multiply, normal;
   }
   :root[data-theme="light"] body::before{
-    background-image:url("assets/pattern.jpg?v=2"), url("assets/paper.jpg?v=2");
+    background-image:url("assets/pattern.jpg?v=3"), url("assets/paper.jpg?v=3");
     background-size:107px 190px, cover;
     background-position:0 0, center;
     background-repeat:repeat, no-repeat;
@@ -813,9 +813,9 @@
 <header>
   <button id="themeToggle" class="theme-toggle" title="החלף מצב תצוגה"></button>
   <div class="brand">
-    <img class="brand-emblem" src="assets/emblem.webp?v=2" alt="" aria-hidden="true" width="300" height="408">
-    <h1 id="siteTitle"><img class="brand-title" src="assets/title.webp?v=2" alt="גנזי חיים" width="900" height="224"></h1>
-    <img class="brand-emblem" src="assets/emblem.webp?v=2" alt="" aria-hidden="true" width="300" height="408">
+    <img class="brand-emblem" src="assets/emblem.webp?v=3" alt="" aria-hidden="true" width="300" height="408">
+    <h1 id="siteTitle"><img class="brand-title" src="assets/title.webp?v=3" alt="גנזי חיים" width="900" height="224"></h1>
+    <img class="brand-emblem" src="assets/emblem.webp?v=3" alt="" aria-hidden="true" width="300" height="408">
   </div>
   <p id="siteSubtitle">שיעורי הרב יואל חקון</p>
   <p class="stats" id="statsLine"></p>
