@@ -681,6 +681,11 @@
     font-size:0.9rem;
   }
   .modal-footer a:hover{text-decoration:underline;}
+  .media-row{display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:2px 0 10px;}
+  .media-row[hidden]{display:none;}
+  .media-row audio{flex:1 1 240px; min-width:200px; height:36px;}
+  .media-row a{display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border); padding:6px 14px; border-radius:999px; text-decoration:none; font-size:.85rem;}
+  .media-badges{margin-inline-start:6px; font-size:.8rem; opacity:.75; white-space:nowrap;}
   .modal-links{
     display:flex;
     align-items:center;
@@ -914,6 +919,11 @@
         <span id="autoplayStatus" class="autoplay-status" aria-live="polite"></span>
         <button id="nextBtn" class="nav-btn">הבא <span aria-hidden="true">⏮</span></button>
       </div>
+      <div class="media-row" id="mediaRow" hidden>
+        <audio id="mediaAudio" controls preload="none"></audio>
+        <a id="mediaDownload" href="#" download><span aria-hidden="true">⬇</span> הורדת mp3</a>
+        <span id="mediaPdfs"></span>
+      </div>
       <div class="modal-links">
         <a id="modalLink" href="#" target="_blank" rel="noopener">פתח ביוטיוב <span aria-hidden="true">↗</span></a>
         <div class="modal-share-btns">
@@ -930,11 +940,16 @@
 </div>
 
 <script src="data/lessons.js"></script>
+<script src="data/media.js"></script>
 <script>
 // ---- נתונים ----
 // data/lessons.js נוצר אוטומטית ע"י scripts/sync.mjs (GitHub Action יומי).
 const DATA = window.LESSONS_DATA || { categories: [], playlists: [], uploads: [], videos: {} };
 const VIDEOS = DATA.videos || {};
+// קבצי שמע ו-PDF (data/media.js, נוצר ע"י scripts/media-import.mjs). אין קבצים = הכפתורים לא מופיעים.
+const MEDIA = window.MEDIA_DATA || { base: "", files: {} };
+const mediaOf = (id) => (MEDIA.base && MEDIA.files[id]) || null;
+const mediaUrl = (key) => MEDIA.base + "/" + key.split("/").map(encodeURIComponent).join("/");
 const lessonOf = (id) => ({ videoId: id, ...VIDEOS[id] });
 const playlists = (DATA.playlists || []).map(p => ({ ...p, lessons: p.videoIds.filter(id => VIDEOS[id]).map(lessonOf) }));
 const UPLOADS = (DATA.uploads || []).filter(id => VIDEOS[id]).map(lessonOf);
@@ -1289,6 +1304,13 @@ function formatDate(iso){
   return `${Number(d)}.${Number(m)}.${y}`;
 }
 
+function mediaBadges(id){
+  const m = mediaOf(id);
+  if(!m) return "";
+  const parts = [m.a ? "🎧" : "", m.p && m.p.length ? "📄" : ""].filter(Boolean).join(" ");
+  return parts ? ` <span class="media-badges" title="יש קובץ שמע ו/או דף מקורות">${parts}</span>` : "";
+}
+
 function songCard(song, idx, songs){
   const isFav = favorites.has(song.videoId);
   const card = document.createElement("div");
@@ -1316,7 +1338,7 @@ function songCard(song, idx, songs){
     </div>
     <div class="song-info">
       <h3>${escapeHtml(song.title)}</h3>
-      <p>${sub}</p>
+      <p>${sub}${mediaBadges(song.videoId)}</p>
     </div>`;
   card.querySelector(".fav-btn").onclick = (e) => { e.stopPropagation(); toggleFavorite(song.videoId); };
   return card;
@@ -1383,6 +1405,7 @@ function renderAll(){
 
 // ---- נגן ----
 const overlay = $("modalOverlay"), modalTitle = $("modalTitle"), modalLink = $("modalLink");
+const mediaRow = $("mediaRow"), mediaAudio = $("mediaAudio"), mediaDownload = $("mediaDownload"), mediaPdfs = $("mediaPdfs");
 const copyLinkBtn = $("copyLinkBtn"), whatsappBtn = $("whatsappBtn"), modalClose = $("modalClose");
 const prevBtn = $("prevBtn"), nextBtn = $("nextBtn"), autoplayStatus = $("autoplayStatus");
 
@@ -1450,12 +1473,36 @@ function updateNavButtons(){
   nextBtn.disabled = !hasList || currentSongIndex >= currentSongList.length - 1;
   autoplayStatus.textContent = hasList && currentSongList.length > 1 ? `${currentSongIndex + 1} מתוך ${currentSongList.length}` : "";
 }
+function setupMedia(id){
+  const m = mediaOf(id);
+  mediaAudio.pause();
+  mediaAudio.removeAttribute("src");
+  mediaPdfs.innerHTML = "";
+  mediaRow.hidden = !m;
+  if(!m) return;
+  mediaAudio.hidden = mediaDownload.hidden = !m.a;
+  if(m.a){
+    mediaAudio.src = mediaUrl(m.a);
+    mediaDownload.href = mediaUrl(m.a);
+    mediaDownload.setAttribute("download", m.a.split("/").pop());
+  }
+  (m.p || []).forEach((k, i) => {
+    const a = document.createElement("a");
+    a.href = mediaUrl(k); a.target = "_blank"; a.rel = "noopener";
+    a.innerHTML = `<span aria-hidden="true">📄</span> דף מקורות${m.p.length > 1 ? " " + (i + 1) : ""}`;
+    mediaPdfs.appendChild(a);
+  });
+}
+// האזנה לשמע בלבד: משתיקים את הוידאו כדי שלא יתנגנו שניהם יחד
+mediaAudio.addEventListener("play", () => { if(playerReady && ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo(); });
+
 function openModal(song, index = 0, list = [song], start = 0){
   if(!overlay.classList.contains("open")) lastFocus = document.activeElement;
   currentSongList = list;
   currentSongIndex = index;
   modalTitle.textContent = song.title;
   modalLink.href = `https://www.youtube.com/watch?v=${song.videoId}`;
+  setupMedia(song.videoId);
   overlay.classList.add("open");
   loadVideo(song.videoId, start);
   updateNavButtons();
@@ -1480,6 +1527,7 @@ function closeModal(){
   if(!overlay.classList.contains("open")) return;
   overlay.classList.remove("open");
   if(playerReady && ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
+  mediaAudio.pause();
   keepScreenOn(false);
   currentSongIndex = -1; currentSongList = [];
   replaceSongURL();
