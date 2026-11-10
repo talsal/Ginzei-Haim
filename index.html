@@ -33,6 +33,7 @@
     --muted:#9aa0ab;
     --border:#262a33;
     --accent2-contrast:#14161c;
+    --halo:rgba(9,14,30,.95);
   }
   :root[data-theme="light"]{
     --bg:#dce8f8;
@@ -45,6 +46,7 @@
     --muted:#465066;
     --border:#cdd8ea;
     --accent2-contrast:#ffffff;
+    --halo:rgba(226,236,251,.95);
   }
   *{box-sizing:border-box;}
   .skip-link{
@@ -81,42 +83,46 @@
     min-height:100vh;
     transition:background .2s ease, color .2s ease;
   }
-  /* רקע האתר: נייר צבעי מים + דוגמת סמל "גנזי חיים" (לפי Site bckgnd.pdf) */
+  /* רקע האתר: נייר צבעי מים + דוגמת סמל "גנזי חיים" (לפי Site bckgnd V2.pdf: דוגמה ב-30%) */
   body::before{
     content:"";
     position:fixed;
     inset:0;
     z-index:-1;
     pointer-events:none;
-    background-image:linear-gradient(rgba(9,14,30,.8),rgba(9,14,30,.8)), url("assets/pattern.png"), url("assets/paper.jpg");
-    background-size:auto, 72px 127px, cover;
+    background-image:linear-gradient(rgba(9,14,30,.8),rgba(9,14,30,.8)), url("assets/pattern.jpg?v=2"), url("assets/paper.jpg?v=2");
+    background-size:auto, 107px 190px, cover;
     background-position:0 0, 0 0, center;
     background-repeat:no-repeat, repeat, no-repeat;
     background-blend-mode:normal, multiply, normal;
   }
   :root[data-theme="light"] body::before{
-    background-image:url("assets/pattern.png"), url("assets/paper.jpg");
-    background-size:72px 127px, cover;
+    background-image:url("assets/pattern.jpg?v=2"), url("assets/paper.jpg?v=2");
+    background-size:107px 190px, cover;
     background-position:0 0, center;
     background-repeat:repeat, no-repeat;
     background-blend-mode:multiply, normal;
+  }
+  /* הילה רכה מאחורי טקסט שיושב ישירות על דוגמת הרקע, לקריאות */
+  header p, .intro p, .groupby > span, .section-title, .section-title .see-all{
+    text-shadow:0 0 3px var(--halo), 0 0 8px var(--halo), 0 0 16px var(--halo);
   }
   .brand{
     display:flex;
     align-items:center;
     justify-content:space-between;
-    gap:16px;
-    max-width:880px;
+    gap:4px;
+    max-width:900px;
     margin:0 auto 10px;
   }
-  .brand-emblem{width:96px; height:auto; flex:none;}
+  .brand-emblem{width:132px; height:auto; flex:none;}
   .brand h1{margin:0; flex:1; min-width:0; display:flex; justify-content:center;}
-  .brand-title{display:block; width:100%; max-width:440px; height:auto;}
+  .brand-title{display:block; width:100%; max-width:580px; height:auto;}
   :root:not([data-theme="light"]) .brand-emblem{filter:invert(1) hue-rotate(180deg) brightness(1.05);}
   :root:not([data-theme="light"]) .brand-title{filter:drop-shadow(0 0 1px rgba(210,225,255,.9)) drop-shadow(0 0 10px rgba(160,190,255,.45));}
   @media (max-width:600px){
-    .brand{gap:8px;}
-    .brand-emblem{width:56px;}
+    .brand{gap:2px;}
+    .brand-emblem{width:64px;}
   }
   header{
     position:relative;
@@ -799,9 +805,9 @@
 <header>
   <button id="themeToggle" class="theme-toggle" title="החלף מצב תצוגה"></button>
   <div class="brand">
-    <img class="brand-emblem" src="assets/emblem.webp" alt="" aria-hidden="true" width="295" height="400">
-    <h1 id="siteTitle"><img class="brand-title" src="assets/title.webp" alt="גנזי חיים" width="900" height="221"></h1>
-    <img class="brand-emblem" src="assets/emblem.webp" alt="" aria-hidden="true" width="295" height="400">
+    <img class="brand-emblem" src="assets/emblem.webp?v=2" alt="" aria-hidden="true" width="300" height="408">
+    <h1 id="siteTitle"><img class="brand-title" src="assets/title.webp?v=2" alt="גנזי חיים" width="900" height="224"></h1>
+    <img class="brand-emblem" src="assets/emblem.webp?v=2" alt="" aria-hidden="true" width="300" height="408">
   </div>
   <p id="siteSubtitle">שיעורי הרב יואל חקון</p>
   <p class="stats" id="statsLine"></p>
