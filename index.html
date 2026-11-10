@@ -685,6 +685,9 @@
   .media-row[hidden]{display:none;}
   .media-row audio{flex:1 1 240px; min-width:200px; height:36px;}
   .media-row a{display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border); padding:6px 14px; border-radius:999px; text-decoration:none; font-size:.85rem;}
+  .audio-thumb{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; font-size:2.2rem; background:linear-gradient(135deg,#1e3a5f,#3b5b8c); color:#fff;}
+  .audio-thumb span{font-size:.8rem; opacity:.85;}
+  .video-frame-wrap.audio-only{display:none;}
   .media-badges{margin-inline-start:6px; font-size:.8rem; opacity:.75; white-space:nowrap;}
   .modal-links{
     display:flex;
@@ -945,13 +948,15 @@
 // ---- נתונים ----
 // data/lessons.js נוצר אוטומטית ע"י scripts/sync.mjs (GitHub Action יומי).
 const DATA = window.LESSONS_DATA || { categories: [], playlists: [], uploads: [], videos: {} };
-const VIDEOS = DATA.videos || {};
 // קבצי שמע ו-PDF (data/media.js, נוצר ע"י scripts/media-import.mjs). אין קבצים = הכפתורים לא מופיעים.
 const MEDIA = window.MEDIA_DATA || { base: "", files: {} };
+// הקלטות שמע בלבד (בלי סרטון) נכנסות לרשימה כשיעורים רגילים, עם מזהה שמתחיל ב-a
+const EXTRA = MEDIA.base && MEDIA.extra ? MEDIA.extra : { videos: {}, playlists: [] };
+const VIDEOS = { ...(DATA.videos || {}), ...EXTRA.videos };
 const mediaOf = (id) => (MEDIA.base && MEDIA.files[id]) || null;
 const mediaUrl = (key) => MEDIA.base + "/" + key.split("/").map(encodeURIComponent).join("/");
 const lessonOf = (id) => ({ videoId: id, ...VIDEOS[id] });
-const playlists = (DATA.playlists || []).map(p => ({ ...p, lessons: p.videoIds.filter(id => VIDEOS[id]).map(lessonOf) }));
+const playlists = [...(DATA.playlists || []), ...EXTRA.playlists].map(p => ({ ...p, lessons: p.videoIds.filter(id => VIDEOS[id]).map(lessonOf) }));
 const UPLOADS = (DATA.uploads || []).filter(id => VIDEOS[id]).map(lessonOf);
 const GROUP_ID = "__group__";
 const GROUPBY_KEY = "rav-yoel-groupby";
@@ -1326,14 +1331,14 @@ function songCard(song, idx, songs){
   const sub = [song.playlistName, formatDate(song.published)].filter(Boolean).map(escapeHtml).join(" · ");
   card.innerHTML = `
     <div class="thumb-wrap">
-      <img loading="lazy" src="https://i.ytimg.com/vi/${song.videoId}/hqdefault.jpg" alt="">
+      ${song.audioOnly ? '<div class="audio-thumb" aria-hidden="true">🎧<span>שמע בלבד</span></div>' : `<img loading="lazy" src="https://i.ytimg.com/vi/${song.videoId}/hqdefault.jpg" alt="">`}
       ${isNew(song) ? '<span class="new-badge">חדש</span>' : ""}
       <button class="fav-btn${isFav ? " active" : ""}" title="הוסף/הסר ממועדפים" aria-label="הוסף/הסר ממועדפים" aria-pressed="${isFav}">
         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 7-6.3-3.9L5.7 21l1.7-7L2 9.2l7.1-.6L12 2z"/></svg>
       </button>
-      <div class="play-badge" aria-hidden="true">
+      ${song.audioOnly ? "" : `<div class="play-badge" aria-hidden="true">
         <svg viewBox="0 0 68 48"><path d="M66.52,7.74c-0.78-2.93-2.49-5.41-5.42-6.19C55.79,.13,34,0,34,0S12.21,.13,6.9,1.55 C3.97,2.33,2.27,4.81,1.48,7.74C0.06,13.05,0,24,0,24s0.06,10.95,1.48,16.26c0.78,2.93,2.49,5.41,5.42,6.19 C12.21,47.87,34,48,34,48s21.79-0.13,27.1-1.55c2.93-0.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z" fill="#e11d48"></path><path d="M 45,24 27,14 27,34" fill="#fff"></path></svg>
-      </div>
+      </div>`}
       <span class="duration">${escapeHtml(song.duration || "")}</span>
     </div>
     <div class="song-info">
@@ -1504,7 +1509,13 @@ function openModal(song, index = 0, list = [song], start = 0){
   modalLink.href = `https://www.youtube.com/watch?v=${song.videoId}`;
   setupMedia(song.videoId);
   overlay.classList.add("open");
-  loadVideo(song.videoId, start);
+  const audioOnly = !!song.audioOnly;
+  document.querySelector(".video-frame-wrap").classList.toggle("audio-only", audioOnly);
+  modalLink.style.display = audioOnly ? "none" : "";
+  if(audioOnly){
+    if(playerReady && ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
+    mediaAudio.play().catch(() => {});
+  } else loadVideo(song.videoId, start);
   updateNavButtons();
   replaceSongURL();
   const shareText = `${song.title}\n${window.location.origin}${buildShareURL()}`;

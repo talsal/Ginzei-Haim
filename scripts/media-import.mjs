@@ -7,6 +7,7 @@
 //   R2_ENDPOINT, R2_BUCKET, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY  (הסודות של R2)
 //   LIMIT      כמה שיעורים להעתיק בריצה אחת (0 = הכול). לדגימה: 5
 //   SCOPE      youtube (ברירת מחדל: רק שיעורים שכבר באתר שלנו) | all (גם הקלטות שמע בלבד)
+//   RATE_LIMIT הגבלת מהירות הורדה מהאתר הישן (ברירת מחדל 8M = 8MB לשנייה)
 //   DRY_RUN=1  בדיקה בלי העלאה
 // דורש את aws CLI ו-curl (מותקנים ב-GitHub Actions).
 
@@ -62,6 +63,8 @@ async function fetchOldLessons() {
         id: d.id,
         yt: a.youtube_id || "",
         title: a.title,
+        main: a.main_category?.data?.attributes?.name || "",
+        sub: a.sub_category?.data?.attributes?.name || "",
         date: a.lesson_date_gregorian || "",
         duration: a.duration || "",
         audio: a.AudioFileName && dir ? `${dir}/${a.AudioFileName}` : "",
@@ -110,8 +113,8 @@ function copyOne(key) {
   return new Promise((resolve, reject) => {
     const p = spawn(
       "bash",
-      ["-c", 'set -o pipefail; curl -fsS --retry 3 -A "$UA" "$SRC" | aws s3 cp - "s3://$BUCKET/$KEY" --endpoint-url "$EP" --content-type "$CT" --only-show-errors'],
-      { env: { ...process.env, UA, SRC: `${FILES}/${encodePath(key)}`, BUCKET: R2_BUCKET, KEY: key, EP: R2_ENDPOINT, CT: mime(key) }, stdio: ["ignore", "inherit", "inherit"] }
+      ["-c", 'set -o pipefail; curl -fsS --retry 3 --limit-rate "$RATE" -A "$UA" "$SRC" | aws s3 cp - "s3://$BUCKET/$KEY" --endpoint-url "$EP" --content-type "$CT" --only-show-errors'],
+      { env: { ...process.env, UA, SRC: `${FILES}/${encodePath(key)}`, BUCKET: R2_BUCKET, KEY: key, EP: R2_ENDPOINT, CT: mime(key), RATE: process.env.RATE_LIMIT || "8M" }, stdio: ["ignore", "inherit", "inherit"] }
     );
     p.on("exit", (c) => (c === 0 ? resolve() : reject(new Error(`copy exit ${c}`))));
   });
@@ -129,10 +132,9 @@ await writeFile(path.join(ROOT, "data", "media-manifest.json"), JSON.stringify({
 const seenYt = new Set();
 let targets = old.filter((l) => {
   if (!l.audio && !l.pdfs.length) return false;
-  if (SCOPE === "youtube") {
-    if (!l.yt || !ours.has(l.yt) || seenYt.has(l.yt)) return false;
-    seenYt.add(l.yt);
-  }
+  if (!l.yt || !ours.has(l.yt)) return SCOPE === "all"; // הקלטת שמע בלבד: אין לה סרטון באתר
+  if (seenYt.has(l.yt)) return false;
+  seenYt.add(l.yt);
   return true;
 });
 console.log(`${targets.length} שיעורים בטווח "${SCOPE}"`);
@@ -173,10 +175,45 @@ for (const l of old) {
   const p = l.pdfs.filter((k) => have.has(k));
   if (a || p.length) files[l.yt] = { ...(a ? { a } : {}), ...(p.length ? { p } : {}) };
 }
+// ---- הקלטות שמע בלבד (אין סרטון באתר): נכנסות כשיעורים עם מזהה a<מספר> ----
+const prefix = config.stripPrefix || "";
+const clean = (t) => (prefix && t.startsWith(prefix) ? t.slice(prefix.length) : t).trim() || t;
+const places = config.places || [];
+const categoryFor = (name) => {
+  for (const c of config.categories || []) if ((c.keywords || []).some((k) => k && name.includes(k))) return c.key;
+  return "other";
+};
+const extra = { videos: {}, playlists: [] };
+const plByName = new Map();
+for (const l of old) {
+  if (l.yt && ours.has(l.yt)) continue;
+  if (!l.audio || !have.has(l.audio)) continue;
+  const id = "a" + l.id;
+  const pdfs = l.pdfs.filter((k) => have.has(k));
+  extra.videos[id] = {
+    title: clean(l.title), duration: l.duration, published: l.date, views: 0, audioOnly: true,
+  };
+  files[id] = { a: l.audio, ...(pdfs.length ? { p: pdfs } : {}) };
+  const name = clean(l.sub || l.main || "שיעורים נוספים");
+  const full = `${name} ${l.main}`;
+  const place = places.find((pl) => full.includes(pl)) || "כללי";
+  let pl = plByName.get(name);
+  if (!pl) {
+    const topic = place !== "כללי"
+      ? name.split(/\s+-\s+/).filter((seg) => !seg.trim().startsWith(place)).join(" - ").trim() || name
+      : name;
+    pl = { id: "a-" + plByName.size, name, description: "", category: categoryFor(name), place, topic, videoIds: [] };
+    plByName.set(name, pl);
+    extra.playlists.push(pl);
+  }
+  pl.videoIds.push(id);
+}
+for (const pl of extra.playlists) pl.videoIds.sort((a, b) => (extra.videos[b].published || "").localeCompare(extra.videos[a].published || ""));
+
 const base = (config.mediaBaseUrl || "").replace(/\/+$/, "");
 await writeFile(
   path.join(ROOT, "data", "media.js"),
-  `// נוצר אוטומטית ע"י scripts/media-import.mjs, אין לערוך ידנית\nwindow.MEDIA_DATA = ${JSON.stringify({ base, files })};\n`
+  `// נוצר אוטומטית ע"י scripts/media-import.mjs, אין לערוך ידנית\nwindow.MEDIA_DATA = ${JSON.stringify({ base, files, extra })};\n`
 );
-console.log(`הועתקו ${copied}, נכשלו ${failed}. ב-media.js: ${Object.keys(files).length} שיעורים`);
+console.log(`הועתקו ${copied}, נכשלו ${failed}. ב-media.js: ${Object.keys(files).length} שיעורים (מהם ${Object.keys(extra.videos).length} שמע בלבד)`);
 if (failed) process.exitCode = 1;
