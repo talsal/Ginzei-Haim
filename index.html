@@ -246,27 +246,28 @@
     box-shadow:0 4px 14px color-mix(in srgb, var(--accent2) 40%, transparent);
   }
   .categories{
-    display:grid;
-    grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));
-    gap:16px;
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:10px;
     max-width:900px;
     margin:0 auto;
-    padding:24px 16px 8px;
+    padding:20px 16px 8px;
   }
   .category-chip{
-    display:flex;
-    flex-direction:column;
+    display:inline-flex;
+    flex-direction:row;
     align-items:center;
-    gap:14px;
+    gap:8px;
     background:var(--card);
     border:1px solid var(--border);
-    border-radius:20px;
+    border-radius:999px;
     color:var(--text);
-    padding:30px 18px;
+    padding:7px 16px 7px 10px;
     cursor:pointer;
-    font-size:1.05rem;
+    font-size:.98rem;
     font-weight:600;
-    text-align:center;
+    white-space:nowrap;
     letter-spacing:.01em;
     box-shadow:0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
     transition:transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s ease, background .15s ease;
@@ -276,14 +277,17 @@
     display:flex;
     align-items:center;
     justify-content:center;
-    width:56px;
-    height:56px;
+    width:30px;
+    height:30px;
     border-radius:50%;
     flex-shrink:0;
   }
-  .category-chip svg{flex-shrink:0; width:28px; height:28px;}
-  .category-chip:hover{background:var(--card-hover); transform:translateY(-4px); box-shadow:0 16px 28px rgba(0,0,0,.12), 0 4px 8px rgba(0,0,0,.06);}
-  .category-chip:active{transform:translateY(-1px); box-shadow:0 6px 14px rgba(0,0,0,.1);}
+  .category-chip svg{flex-shrink:0; width:18px; height:18px;}
+  .category-chip:hover{background:var(--card-hover); transform:translateY(-2px); box-shadow:0 8px 18px rgba(0,0,0,.1);}
+  .category-chip:active{transform:translateY(0); box-shadow:0 2px 6px rgba(0,0,0,.08);}
+  .category-chip.closed{border-style:dashed; color:var(--muted);}
+  .category-chip.closed .chip-icon{filter:grayscale(.7); opacity:.75;}
+  .chip-closed{font-size:.7rem; font-weight:600; padding:1px 7px; border-radius:999px; background:color-mix(in srgb, var(--muted) 18%, transparent); color:var(--muted);}
   .category-chip.active{
     border-color:var(--accent2);
     box-shadow:0 0 0 2px color-mix(in srgb, var(--accent2) 25%, transparent), 0 10px 22px rgba(0,0,0,.1);
@@ -932,6 +936,10 @@ const GROUP_ID = "__group__";
 const GROUPBY_KEY = "rav-yoel-groupby";
 const PLVIEW_KEY = "rav-yoel-plview";
 const PLSORT_KEY = "rav-yoel-plsort";
+// סדר המקומות לפי זמני השיעורים. מקום שלא מופיע כאן יבוא אחריהם, והקבוצות הסגורות בסוף.
+const PLACE_ORDER = ["בית וגן", "הר חומה", "יד בנימין", "מבוא חורון", "ישיבה", "כללי"];
+// קבוצות שכבר לא פעילות: שם המקום בנתונים -> השם שמוצג בכפתור
+const CLOSED_PLACES = { "בית וגן אוהל משה": "אוהל משה" };
 const PLACE_COLORS = ["#3b82f6", "#f59e0b", "#a855f7", "#22c55e", "#ef4444", "#14b8a6", "#ec4899", "#64748b"];
 function lsGet(k, d){ try{ return localStorage.getItem(k) || d; } catch(e){ return d; } }
 function lsSet(k, v){ try{ localStorage.setItem(k, v); } catch(e){} }
@@ -944,8 +952,9 @@ function rebuildGroups(){
   if(groupBy === "place"){
     const counts = new Map();
     playlists.forEach(p => { const k = groupOf(p); counts.set(k, (counts.get(k) || 0) + p.lessons.length); });
-    CATEGORIES = [...counts.entries()].sort((a, b) => b[1] - a[1])
-      .map(([k], i) => ({ key: k, label: k, color: PLACE_COLORS[i % PLACE_COLORS.length] }));
+    const rank = (k) => CLOSED_PLACES[k] ? 2000 : (PLACE_ORDER.includes(k) ? PLACE_ORDER.indexOf(k) : 1000);
+    CATEGORIES = [...counts.entries()].sort((a, b) => rank(a[0]) - rank(b[0]) || b[1] - a[1])
+      .map(([k], i) => ({ key: k, label: CLOSED_PLACES[k] || k, closed: !!CLOSED_PLACES[k], color: PLACE_COLORS[i % PLACE_COLORS.length] }));
   } else {
     CATEGORIES = DATA.categories || [];
   }
@@ -1161,7 +1170,9 @@ function renderCategories(){
     if(!count) return;
     const chip = document.createElement("button");
     chip.className = "category-chip" + (currentCategory === cat.key ? " active" : "");
-    chip.innerHTML = `<span class="chip-icon" aria-hidden="true" style="background:color-mix(in srgb, ${cat.color} 16%, transparent)">${BOOK_ICON(cat.color)}</span><span>${escapeHtml(cat.label)}</span>`;
+    chip.className += cat.closed ? " closed" : "";
+    if(cat.closed) chip.title = "קבוצה שהסתיימה. השיעורים זמינים להאזנה";
+    chip.innerHTML = `<span class="chip-icon" aria-hidden="true" style="background:color-mix(in srgb, ${cat.color} 16%, transparent)">${BOOK_ICON(cat.color)}</span><span class="chip-label">${escapeHtml(cat.label)}</span>${cat.closed ? `<span class="chip-closed">סגורה</span>` : ""}`;
     chip.onclick = () => {
       currentCategory = cat.key;
       const visible = playlists.filter(pl => groupOf(pl) === currentCategory);
@@ -1179,7 +1190,11 @@ function renderFavRow(){
   const favBtn = document.createElement("button");
   favBtn.className = "fav-btn-standalone" + (!isSearching() && currentPlaylistId === FAVORITES_ID ? " active" : "");
   favBtn.innerHTML = `<span aria-hidden="true">⭐</span> מועדפים`;
-  favBtn.onclick = () => { currentPlaylistId = FAVORITES_ID; currentCategory = null; homeView = false; searchEl.value=""; visibleLimit = PAGE_SIZE; renderAll(); pushPlaylistURL(); };
+  favBtn.setAttribute("aria-pressed", currentPlaylistId === FAVORITES_ID ? "true" : "false");
+  favBtn.onclick = () => {
+    // לחיצה נוספת על מועדפים יוצאת מהמצב וחוזרת לדף הבית
+    if(!isSearching() && currentPlaylistId === FAVORITES_ID){ goHome(); return; }
+    currentPlaylistId = FAVORITES_ID; currentCategory = null; homeView = false; searchEl.value=""; visibleLimit = PAGE_SIZE; renderAll(); pushPlaylistURL(); };
   favRowEl.appendChild(favBtn);
 }
 
