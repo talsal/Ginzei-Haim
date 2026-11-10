@@ -27,23 +27,23 @@
     --bg2:#14161c;
     --card:#181b22;
     --card-hover:#20242e;
-    --accent:#e11d48;
-    --accent2:#f59e0b;
+    --accent:#3b5bdb;
+    --accent2:#8fb0ff;
     --text:#f1f1f3;
     --muted:#9aa0ab;
     --border:#262a33;
     --accent2-contrast:#14161c;
   }
   :root[data-theme="light"]{
-    --bg:#f7f7f9;
-    --bg2:#eceef2;
+    --bg:#dce8f8;
+    --bg2:#e8eef7;
     --card:#ffffff;
     --card-hover:#f1f2f5;
-    --accent:#e11d48;
-    --accent2:#a06008;
+    --accent:#1f3a93;
+    --accent2:#2a4ab0;
     --text:#1a1c22;
-    --muted:#646b78;
-    --border:#e2e4ea;
+    --muted:#465066;
+    --border:#cdd8ea;
     --accent2-contrast:#ffffff;
   }
   *{box-sizing:border-box;}
@@ -76,10 +76,47 @@
     font-family:-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     -webkit-font-smoothing:antialiased;
     letter-spacing:-0.01em;
-    background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);
+    background:var(--bg);
     color:var(--text);
     min-height:100vh;
     transition:background .2s ease, color .2s ease;
+  }
+  /* רקע האתר: נייר צבעי מים + דוגמת סמל "גנזי חיים" (לפי Site bckgnd.pdf) */
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    z-index:-1;
+    pointer-events:none;
+    background-image:linear-gradient(rgba(9,14,30,.8),rgba(9,14,30,.8)), url("assets/pattern.png"), url("assets/paper.jpg");
+    background-size:auto, 72px 127px, cover;
+    background-position:0 0, 0 0, center;
+    background-repeat:no-repeat, repeat, no-repeat;
+    background-blend-mode:normal, multiply, normal;
+  }
+  :root[data-theme="light"] body::before{
+    background-image:url("assets/pattern.png"), url("assets/paper.jpg");
+    background-size:72px 127px, cover;
+    background-position:0 0, center;
+    background-repeat:repeat, no-repeat;
+    background-blend-mode:multiply, normal;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    max-width:880px;
+    margin:0 auto 10px;
+  }
+  .brand-emblem{width:96px; height:auto; flex:none;}
+  .brand h1{margin:0; flex:1; min-width:0; display:flex; justify-content:center;}
+  .brand-title{display:block; width:100%; max-width:440px; height:auto;}
+  :root:not([data-theme="light"]) .brand-emblem{filter:invert(1) hue-rotate(180deg) brightness(1.05);}
+  :root:not([data-theme="light"]) .brand-title{filter:drop-shadow(0 0 1px rgba(210,225,255,.9)) drop-shadow(0 0 10px rgba(160,190,255,.45));}
+  @media (max-width:600px){
+    .brand{gap:8px;}
+    .brand-emblem{width:56px;}
   }
   header{
     position:relative;
@@ -757,7 +794,11 @@
 
 <header>
   <button id="themeToggle" class="theme-toggle" title="החלף מצב תצוגה"></button>
-  <h1><span class="emoji-plain" aria-hidden="true">📖</span> <span class="gradient-text" id="siteTitle">גנזי חיים</span></h1>
+  <div class="brand">
+    <img class="brand-emblem" src="assets/emblem.webp" alt="" aria-hidden="true" width="295" height="400">
+    <h1 id="siteTitle"><img class="brand-title" src="assets/title.webp" alt="גנזי חיים" width="900" height="221"></h1>
+    <img class="brand-emblem" src="assets/emblem.webp" alt="" aria-hidden="true" width="295" height="400">
+  </div>
   <p id="siteSubtitle">שיעורי הרב יואל חקון</p>
   <p class="stats" id="statsLine"></p>
 </header>
