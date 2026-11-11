@@ -103,18 +103,18 @@ async function listR2() {
 const encodePath = (p) => p.split("/").map(encodeURIComponent).join("/");
 const mime = (key) => (key.toLowerCase().endsWith(".pdf") ? "application/pdf" : "audio/mpeg");
 
-async function remoteSize(key) {
-  const res = await fetch(`${FILES}/${encodePath(key)}`, { method: "HEAD", headers: { "user-agent": UA } });
+async function remoteSize(srcPath) {
+  const res = await fetch(`${FILES}/${encodePath(srcPath)}`, { method: "HEAD", headers: { "user-agent": UA } });
   if (!res.ok) throw new Error(`HEAD ${res.status}`);
   return parseInt(res.headers.get("content-length") || "0", 10);
 }
 
-function copyOne(key) {
+function copyOne(srcPath, key) {
   return new Promise((resolve, reject) => {
     const p = spawn(
       "bash",
       ["-c", 'set -o pipefail; curl -fsS --retry 3 --limit-rate "$RATE" -A "$UA" "$SRC" | aws s3 cp - "s3://$BUCKET/$KEY" --endpoint-url "$EP" --content-type "$CT" --only-show-errors'],
-      { env: { ...process.env, UA, SRC: `${FILES}/${encodePath(key)}`, BUCKET: R2_BUCKET, KEY: key, EP: R2_ENDPOINT, CT: mime(key), RATE: process.env.RATE_LIMIT || "8M" }, stdio: ["ignore", "inherit", "inherit"] }
+      { env: { ...process.env, UA, SRC: `${FILES}/${encodePath(srcPath)}`, BUCKET: R2_BUCKET, KEY: key, EP: R2_ENDPOINT, CT: mime(key), RATE: process.env.RATE_LIMIT || "8M" }, stdio: ["ignore", "inherit", "inherit"] }
     );
     p.on("exit", (c) => (c === 0 ? resolve() : reject(new Error(`copy exit ${c}`))));
   });
@@ -140,24 +140,42 @@ let targets = old.filter((l) => {
 console.log(`${targets.length} שיעורים בטווח "${SCOPE}"`);
 
 const have = await listR2();
-const missingOf = (l) => [l.audio, ...l.pdfs].filter(Boolean).filter((k) => !have.has(k));
+// התיקיות ב-R2 משקפות את תיקיות האתר הישן בלי הקידומת JH/. אם קובץ נמצא במקום אחר (למשל בתיקייה שהועלתה ידנית), מוצאים אותו לפי שם הקובץ.
+const norm = (x) => x.toLowerCase().replace(/[\s_.\-]+/g, "");
+const baseOf = (k) => k.split("/").pop();
+const byBase = new Map();
+const indexKey = (k) => { if (/\.(mp3|pdf)$/i.test(k)) byBase.set(norm(baseOf(k)), k); };
+for (const k of have.keys()) indexKey(k);
+const keyOf = (pth) => pth.replace(/^JH\//, "");
+const find = (pth) => (have.has(keyOf(pth)) ? keyOf(pth) : have.has(pth) ? pth : byBase.get(norm(baseOf(pth))) || "");
+{
+  let exact = 0, byName = 0, missing = 0;
+  for (const l of targets) for (const pth of [l.audio, ...l.pdfs].filter(Boolean)) {
+    const k = find(pth);
+    if (!k) missing++; else if (k === keyOf(pth) || k === pth) exact++; else byName++;
+  }
+  console.log(`ב-R2 (${have.size} קבצים): ${exact} במקום הצפוי, ${byName} נמצאו לפי שם הקובץ, ${missing} חסרים`);
+}
+const dryKeys = new Set();
+const missingOf = (l) => [l.audio, ...l.pdfs].filter(Boolean).filter((pth) => !find(pth) && !dryKeys.has(keyOf(pth)));
 let pending = targets.filter((l) => missingOf(l).length);
 console.log(`${pending.length} שיעורים עם קבצים שעוד לא ב-R2`);
 if (LIMIT) pending = pending.slice(0, LIMIT);
 
 let copied = 0, failed = 0, dryBytes = 0;
-const dryKeys = new Set();
 for (const l of pending) {
-  for (const key of missingOf(l)) {
-    if (have.has(key) || dryKeys.has(key)) continue; // PDF משותף שכבר הועלה בסבב הזה
+  for (const pth of missingOf(l)) {
+    const key = keyOf(pth);
+    if (find(pth) || dryKeys.has(key)) continue; // PDF משותף שכבר הועלה בסבב הזה
     try {
-      const size = await remoteSize(key);
+      const size = await remoteSize(pth);
       if (DRY) { dryBytes += size; dryKeys.add(key); continue; }
-      await copyOne(key);
+      await copyOne(pth, key);
       const { stdout } = await run("aws", awsArgs("s3api", "head-object", "--bucket", R2_BUCKET, "--key", key, "--output", "json"));
       const got = JSON.parse(stdout).ContentLength;
       if (got !== size) throw new Error(`גודל לא תואם: ${got} במקום ${size}`);
       have.set(key, got);
+      indexKey(key);
       copied++;
       console.log(`✓ ${key} (${(got / 1048576).toFixed(1)}MB)`);
     } catch (e) {
@@ -175,8 +193,8 @@ if (DRY) process.exit(0); // בבדיקה בלבד לא נוגעים ב-media.js
 const files = {};
 for (const l of old) {
   if (!l.yt || !ours.has(l.yt) || files[l.yt]) continue;
-  const a = l.audio && have.has(l.audio) ? l.audio : "";
-  const p = l.pdfs.filter((k) => have.has(k));
+  const a = l.audio ? find(l.audio) : "";
+  const p = l.pdfs.map(find).filter(Boolean);
   if (a || p.length) files[l.yt] = { ...(a ? { a } : {}), ...(p.length ? { p } : {}) };
 }
 // ---- הקלטות שמע בלבד (אין סרטון באתר): נכנסות כשיעורים עם מזהה a<מספר> ----
@@ -191,13 +209,14 @@ const extra = { videos: {}, playlists: [] };
 const plByName = new Map();
 for (const l of old) {
   if (l.yt && ours.has(l.yt)) continue;
-  if (!l.audio || !have.has(l.audio)) continue;
+  const audioKey = l.audio ? find(l.audio) : "";
+  if (!audioKey) continue;
   const id = "a" + l.id;
-  const pdfs = l.pdfs.filter((k) => have.has(k));
+  const pdfs = l.pdfs.map(find).filter(Boolean);
   extra.videos[id] = {
     title: clean(l.title), duration: l.duration, published: l.date, views: 0, audioOnly: true,
   };
-  files[id] = { a: l.audio, ...(pdfs.length ? { p: pdfs } : {}) };
+  files[id] = { a: audioKey, ...(pdfs.length ? { p: pdfs } : {}) };
   const name = clean(l.sub || l.main || "שיעורים נוספים");
   const full = `${name} ${l.main}`;
   const place = places.find((pl) => full.includes(pl)) || "כללי";
