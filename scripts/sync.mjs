@@ -11,6 +11,9 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CONFIG_PATH = path.join(ROOT, "config.json");
 const OUT_PATH = path.join(ROOT, "data", "lessons.js");
 const SEEN_PATH = path.join(ROOT, "data", "seen.json");
+// סרטונים שכבר באתר אבל עוד לא סופיים (פרמיירה מתוכננת, שידור חי, בעיבוד), עם "חתימה" של מצבם.
+// הבדיקה המהירה מסנכרנת מחדש רק כשהחתימה משתנה (למשל הפרמיירה הסתיימה ויש משך).
+const PENDING_PATH = path.join(ROOT, "data", "pending.json");
 const QUICK = process.env.QUICK === "1";
 const API = "https://www.googleapis.com/youtube/v3/";
 
@@ -62,6 +65,13 @@ function isoDuration(iso) {
   return { text, seconds };
 }
 
+// מצב הסרטון ביוטיוב. כשהוא משתנה (פרמיירה התחילה/נגמרה, העיבוד הסתיים, שם הוחלף) מסנכרנים מחדש.
+function signature(v) {
+  if (!v) return "gone";
+  return [v.status && v.status.privacyStatus, v.status && v.status.uploadStatus,
+    v.snippet.liveBroadcastContent, v.contentDetails && v.contentDetails.duration, v.snippet.title].join("|");
+}
+
 // ---- 1. הערוץ ----
 const channelParams = config.channelId
   ? { id: config.channelId }
@@ -82,7 +92,18 @@ if (QUICK) {
   try { seen = new Set(JSON.parse(await readFile(SEEN_PATH, "utf8"))); } catch {}
   if (seen) {
     const first = await api("playlistItems", { part: "contentDetails", playlistId: uploadsId, maxResults: 50 });
-    const fresh = (first.items || []).map(i => i.contentDetails && i.contentDetails.videoId).filter(id => id && !seen.has(id));
+    let pendingPrev = {};
+    try { pendingPrev = JSON.parse(await readFile(PENDING_PATH, "utf8")); } catch {}
+    const unseen = (first.items || []).map(i => i.contentDetails && i.contentDetails.videoId).filter(id => id && !seen.has(id));
+    // סרטון שכבר באתר כ"לא סופי": בודקים אם מצבו השתנה (יחידת מכסה אחת לכל 50)
+    const waiting = unseen.filter(id => id in pendingPrev);
+    const fresh = unseen.filter(id => !(id in pendingPrev));
+    for (let i = 0; i < waiting.length; i += 50) {
+      const batch = waiting.slice(i, i + 50);
+      const data = await api("videos", { part: "snippet,contentDetails,status", id: batch.join(",") });
+      const byId = Object.fromEntries((data.items || []).map(v => [v.id, v]));
+      for (const id of batch) if (signature(byId[id]) !== pendingPrev[id]) fresh.push(id);
+    }
     if (!fresh.length) {
       console.log("אין סרטונים חדשים בערוץ, מדלג.");
       await setOutput("skip", "true");
@@ -110,25 +131,35 @@ for (const p of rawPlaylists) playlistIds[p.id] = await playlistVideoIds(p.id);
 // ---- 3. פרטי הסרטונים ----
 const allIds = [...new Set([...uploadIds, ...Object.values(playlistIds).flat()])];
 const videos = {};
-// סרטונים שעדיין לא זמינים (שידור חי, שידור מתוכנן, פרטי/בעיבוד). לא מסמנים אותם כ"נראו",
-// כדי שהבדיקה המהירה תנסה שוב כשהם יהפכו לציבוריים.
+// סרטונים שעדיין לא סופיים. לא מסמנים אותם כ"נראו", כדי שהבדיקה המהירה תבדוק אותם שוב:
+// - פרטיים/לא נמצאו: לא מוצגים באתר בכלל (אין קישור שעובד).
+// - פרמיירה מתוכננת, שידור חי, או בעיבוד: מוצגים באתר מיד, ומתעדכנים (משך, שם) כשהם מסתיימים.
 const pending = new Set(allIds);
+const pendingSig = {};
 for (let i = 0; i < allIds.length; i += 50) {
   const batch = allIds.slice(i, i + 50);
-  const data = await api("videos", { part: "snippet,contentDetails,status,statistics", id: batch.join(",") });
+  const data = await api("videos", { part: "snippet,contentDetails,status,statistics,liveStreamingDetails", id: batch.join(",") });
   for (const v of data.items || []) {
     const privacy = v.status && v.status.privacyStatus;
     if (privacy !== "public" && privacy !== "unlisted") continue;
-    if (v.snippet.liveBroadcastContent === "upcoming" || v.snippet.liveBroadcastContent === "live") continue;
-    pending.delete(v.id);
+    const lbc = v.snippet.liveBroadcastContent;
+    const live = lbc === "upcoming" ? "upcoming" : lbc === "live" ? "live" : "";
     const dur = isoDuration(v.contentDetails.duration);
-    if (config.minDurationSeconds && dur.seconds && dur.seconds < config.minDurationSeconds) continue;
+    const processing = !live && (!dur.seconds || (v.status.uploadStatus && v.status.uploadStatus !== "processed"));
+    if (live || processing) pendingSig[v.id] = signature(v);
+    else pending.delete(v.id);
+    // סינון לפי אורך מינימלי רק כשהאורך כבר ידוע
+    if (!live && !processing && config.minDurationSeconds && dur.seconds < config.minDurationSeconds) continue;
+    const lsd = v.liveStreamingDetails || {};
+    const start = live === "upcoming" ? lsd.scheduledStartTime : live === "live" ? (lsd.actualStartTime || lsd.scheduledStartTime) : "";
     videos[v.id] = {
       title: v.snippet.title.trim(),
       description: v.snippet.description || "",
-      duration: dur.text,
-      published: (v.snippet.publishedAt || "").slice(0, 10),
+      duration: live || processing ? "" : dur.text,
+      published: (start || v.snippet.publishedAt || "").slice(0, 10),
       views: Number((v.statistics && v.statistics.viewCount) || 0),
+      ...(live ? { live } : {}),
+      ...(live === "upcoming" && start ? { startsAt: start } : {}),
     };
   }
 }
@@ -244,7 +275,9 @@ if (strip(prevText).includes(strip(json))) {
   await writeFile(OUT_PATH, "// נוצר אוטומטית ע\"י scripts/sync.mjs, אין לערוך ידנית\nwindow.LESSONS_DATA = " + json + ";\n");
   console.log(`נכתב ${OUT_PATH}: ${playlists.length} פלייליסטים, ${count} שיעורים (${count - previousCount >= 0 ? "+" : ""}${count - previousCount})`);
 }
-if (pending.size) console.log("סרטונים שעדיין לא זמינים (ייבדקו שוב):", [...pending].join(", "));
+if (pending.size) console.log("סרטונים שעדיין לא סופיים (ייבדקו שוב):", [...pending].join(", "));
 await writeFile(SEEN_PATH, JSON.stringify([...new Set(uploadIds)].filter(id => !pending.has(id)).sort()));
+const pendingOut = Object.fromEntries(Object.keys(pendingSig).sort().map(id => [id, pendingSig[id]]));
+await writeFile(PENDING_PATH, JSON.stringify(pendingOut));
 await setOutput("skip", "false");
 console.log("יחידות מכסה שנוצלו:", quota, "(מתוך 10,000 ביום)");

@@ -575,6 +575,7 @@
     padding:2px 6px;
     border-radius:4px;
   }
+  .duration.live-badge{background:#c81e1e; font-weight:700;}
   .fav-btn{
     position:absolute;
     top:8px;
@@ -1316,6 +1317,20 @@ function mediaBadges(id){
   return parts ? ` <span class="media-badges" title="יש קובץ שמע ו/או דף מקורות">${parts}</span>` : "";
 }
 
+// שיעור שעדיין בשידור חי או בפרמיירה מתוכננת: תווית במקום המשך
+function durationLabel(song){
+  if(song.live === "live") return '<span class="duration live-badge">● בשידור</span>';
+  if(song.live === "upcoming"){
+    let when = "";
+    if(song.startsAt){
+      const d = new Date(song.startsAt);
+      when = " " + d.toLocaleString("he-IL", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" });
+    }
+    return `<span class="duration live-badge">פרמיירה${escapeHtml(when)}</span>`;
+  }
+  return song.duration ? `<span class="duration">${escapeHtml(song.duration)}</span>` : "";
+}
+
 function songCard(song, idx, songs){
   const isFav = favorites.has(song.videoId);
   const card = document.createElement("div");
@@ -1339,7 +1354,7 @@ function songCard(song, idx, songs){
       ${song.audioOnly ? "" : `<div class="play-badge" aria-hidden="true">
         <svg viewBox="0 0 68 48"><path d="M66.52,7.74c-0.78-2.93-2.49-5.41-5.42-6.19C55.79,.13,34,0,34,0S12.21,.13,6.9,1.55 C3.97,2.33,2.27,4.81,1.48,7.74C0.06,13.05,0,24,0,24s0.06,10.95,1.48,16.26c0.78,2.93,2.49,5.41,5.42,6.19 C12.21,47.87,34,48,34,48s21.79-0.13,27.1-1.55c2.93-0.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z" fill="#e11d48"></path><path d="M 45,24 27,14 27,34" fill="#fff"></path></svg>
       </div>`}
-      <span class="duration">${escapeHtml(song.duration || "")}</span>
+      ${durationLabel(song)}
     </div>
     <div class="song-info">
       <h3>${escapeHtml(song.title)}</h3>
