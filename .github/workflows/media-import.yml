@@ -3,6 +3,10 @@ name: העתקת mp3 ו-PDF מהאתר הישן ל-R2
 on:
   workflow_dispatch:
     inputs:
+      link_only:
+        description: "בלי העתקה מהאתר הישן: רק לקשר באתר קבצים שכבר ב-R2 (אפשר להריץ שוב אחרי שהרב מעלה עוד)"
+        type: boolean
+        default: false
       limit:
         description: "כמה שיעורים להעתיק בריצה (0 = הכול). לדגימה: 5"
         default: "5"
@@ -44,6 +48,7 @@ jobs:
           AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
           LIMIT: ${{ inputs.limit }}
           SCOPE: ${{ inputs.scope }}
+          LINK_ONLY: ${{ inputs.link_only && '1' || '0' }}
           DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}
         run: node scripts/media-import.mjs
 
