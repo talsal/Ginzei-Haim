@@ -90,7 +90,6 @@ async function ourVideoIds() {
 const awsArgs = (...a) => [...a, "--endpoint-url", R2_ENDPOINT];
 async function listR2() {
   const have = new Map();
-  if (DRY) return have;
   let token;
   do {
     const args = ["s3api", "list-objects-v2", "--bucket", R2_BUCKET, "--output", "json", ...(token ? ["--starting-token", token] : [])];
