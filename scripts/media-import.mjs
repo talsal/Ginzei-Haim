@@ -9,6 +9,7 @@
 //   SCOPE      youtube (ברירת מחדל: רק שיעורים שכבר באתר שלנו) | all (גם הקלטות שמע בלבד)
 //   RATE_LIMIT הגבלת מהירות הורדה מהאתר הישן (ברירת מחדל 8M = 8MB לשנייה)
 //   DRY_RUN=1  בדיקה בלי העלאה
+//   LINK_ONLY=1  בלי העתקה, רק קישור קבצים שכבר ב-R2
 // דורש את aws CLI ו-curl (מותקנים ב-GitHub Actions).
 
 import { readFile, writeFile } from "node:fs/promises";
@@ -29,6 +30,7 @@ const DELAY_MS = 600; // נימוס כלפי השרת של הישיבה
 const LIMIT = parseInt(process.env.LIMIT || "0", 10);
 const SCOPE = process.env.SCOPE || "youtube";
 const DRY = process.env.DRY_RUN === "1";
+const LINK_ONLY = process.env.LINK_ONLY === "1"; // בלי העתקה: רק מקשרים קבצים שכבר קיימים ב-R2
 const { R2_ENDPOINT, R2_BUCKET } = process.env;
 if (!DRY && (!R2_ENDPOINT || !R2_BUCKET)) {
   console.error("חסרים R2_ENDPOINT / R2_BUCKET");
@@ -160,6 +162,7 @@ const dryKeys = new Set();
 const missingOf = (l) => [l.audio, ...l.pdfs].filter(Boolean).filter((pth) => !find(pth) && !dryKeys.has(keyOf(pth)));
 let pending = targets.filter((l) => missingOf(l).length);
 console.log(`${pending.length} שיעורים עם קבצים שעוד לא ב-R2`);
+if (LINK_ONLY) pending = [];
 if (LIMIT) pending = pending.slice(0, LIMIT);
 
 let copied = 0, failed = 0, dryBytes = 0;
