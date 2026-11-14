@@ -16,7 +16,7 @@
 
 var REPO = 'talsal/Ginzei-Haim';
 var WORKFLOW = 'sync.yml';
-var SITE_URL = 'https://talsal.github.io/Ginzei-Haim/';
+var SITE_URL = 'https://ginzei-haim.org/';
 
 function dispatch_(quick) {
   var token = PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN');
