@@ -117,12 +117,14 @@
   }
   .brand-emblem{width:132px; height:auto; flex:none;}
   .brand h1{margin:0; flex:1; min-width:0; display:flex; justify-content:center;}
-  .brand-title{display:block; width:100%; max-width:580px; height:auto;}
+  /* הכותרת: גדולה יותר, מורמת ומוזזת מעט ימינה כדי לשבת באמצע בין שני הסמלים */
+  .brand-title{display:block; width:100%; max-width:610px; height:auto; transform:translate(var(--title-dx, 8px), var(--title-dy, -16px));}
   :root:not([data-theme="light"]) .brand-emblem{filter:invert(1) hue-rotate(180deg) brightness(1.05);}
   :root:not([data-theme="light"]) .brand-title{filter:drop-shadow(0 0 1px rgba(210,225,255,.9)) drop-shadow(0 0 10px rgba(160,190,255,.45));}
   @media (max-width:600px){
     .brand{gap:2px;}
     .brand-emblem{width:64px;}
+    .brand-title{--title-dx:5px; --title-dy:-6px;}
   }
   header{
     position:relative;
@@ -300,28 +302,40 @@
   }
   .category-header{
     display:flex;
+    flex-direction:column;
     align-items:center;
     gap:12px;
     max-width:900px;
     margin:0 auto;
-    padding:16px 16px 0;
+    padding:18px 16px 4px;
   }
   .back-to-categories{
-    background:transparent;
-    border:1px solid var(--border);
-    color:var(--text);
-    padding:8px 16px;
+    align-self:flex-start;
+    background:var(--card);
+    border:2px solid var(--accent2);
+    color:var(--accent2);
+    padding:9px 20px;
     border-radius:999px;
     cursor:pointer;
-    font-size:0.9rem;
-    transition:background .15s ease;
+    font-size:1rem;
+    font-weight:700;
+    font-family:inherit;
+    box-shadow:0 2px 8px rgba(0,0,0,.12);
+    transition:background .15s ease, color .15s ease;
   }
-  .back-to-categories:hover{background:var(--card-hover);}
+  .back-to-categories:hover{background:var(--accent2); color:var(--accent2-contrast);}
   .category-header-label{
-    font-weight:600;
-    color:var(--accent2);
-    font-size:1.05rem;
+    font-weight:800;
+    color:var(--text);
+    font-size:clamp(1.6rem, 4.5vw, 2.3rem);
+    line-height:1.2;
+    text-align:center;
     margin:0;
+    padding:6px 22px 10px;
+    background:color-mix(in srgb, var(--card) 82%, transparent);
+    border-radius:16px;
+    border-bottom:4px solid var(--accent2);
+    box-shadow:0 4px 16px rgba(0,0,0,.1);
   }
   .tabs{
     display:grid;
@@ -339,10 +353,11 @@
   .tab.active .tab-place{background:rgba(255,255,255,.25); color:#fff;}
   .tab-place{background:color-mix(in srgb, var(--accent2) 16%, transparent); color:var(--accent2); padding:1px 8px; border-radius:999px; font-size:.72rem; font-weight:600;}
   .pl-bar, .groupby{display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; max-width:1200px; margin:0 auto; padding:8px 16px 0; font-size:.9rem; color:var(--muted);}
-  .seg{display:inline-flex; border:1px solid var(--border); border-radius:999px; overflow:hidden; background:var(--card);}
-  .seg button{border:none; background:transparent; color:var(--text); padding:7px 16px; font-size:.88rem; cursor:pointer; font-family:inherit;}
+  .seg{display:inline-flex; border:1.5px solid var(--accent2); border-radius:999px; overflow:hidden; background:var(--card); box-shadow:0 2px 6px rgba(0,0,0,.08);}
+  .seg button{border:none; background:transparent; color:var(--text); padding:8px 18px; font-size:.95rem; font-weight:600; cursor:pointer; font-family:inherit;}
+  .seg button:not(.active):hover{background:var(--card-hover);}
   .seg button.active{background:var(--accent2); color:var(--accent2-contrast); font-weight:700;}
-  .pl-bar select{background:var(--card); color:var(--text); border:1px solid var(--border); border-radius:10px; padding:7px 10px; font-family:inherit; font-size:.88rem;}
+  .pl-bar select{background:var(--card); color:var(--text); border:1.5px solid var(--accent2); border-radius:10px; padding:7px 10px; font-family:inherit; font-size:.88rem;}
   .tab{
     display:flex;
     align-items:center;
@@ -376,8 +391,13 @@
     background:var(--accent);
     border-color:var(--accent);
     font-weight:600;
-    box-shadow:0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent);
+    box-shadow:0 0 0 3px color-mix(in srgb, var(--accent2) 45%, transparent), 0 6px 18px color-mix(in srgb, var(--accent) 40%, transparent);
   }
+  /* "כל השיעורים בקבוצה": כרטיס בולט גם כשאינו נבחר */
+  .tab.tab-all{border:2px solid var(--accent2); background:color-mix(in srgb, var(--accent2) 12%, var(--card));}
+  .tab.tab-all .tab-name{font-size:1.1rem; font-weight:800; color:var(--accent2);}
+  .tab.tab-all.active{background:var(--accent); border-color:var(--accent2);}
+  .tab.tab-all.active .tab-name{color:#fff;}
   .tab.active .tab-count{background:rgba(255,255,255,.25); color:#fff;}
   .tab.active:hover{transform:translateY(-1px);}
   .tab.active:active{transform:translateY(0);}
@@ -684,12 +704,16 @@
   .modal-footer a:hover{text-decoration:underline;}
   .media-row{display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:2px 0 10px;}
   .media-row[hidden]{display:none;}
-  .media-row audio{flex:1 1 240px; min-width:200px; height:36px;}
-  .media-row a{display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border); padding:6px 14px; border-radius:999px; text-decoration:none; font-size:.85rem;}
+  .media-row [hidden]{display:none !important;}
+  .media-row audio{flex:1 1 240px; min-width:200px; height:44px;}
+  #mediaPdfs{display:contents;}
+  .media-row a{display:inline-flex; align-items:center; gap:8px; min-height:44px; border:1.5px solid var(--accent2); color:var(--accent2); background:var(--card); padding:8px 18px; border-radius:999px; text-decoration:none; font-size:1rem; font-weight:600;}
+  .media-row a:hover{background:var(--accent2); color:var(--accent2-contrast); text-decoration:none;}
+  .media-row a .mi{font-size:1.45rem; line-height:1;}
   .audio-thumb{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; font-size:2.2rem; background:linear-gradient(135deg,#1e3a5f,#3b5b8c); color:#fff;}
   .audio-thumb span{font-size:.8rem; opacity:.85;}
   .video-frame-wrap.audio-only{display:none;}
-  .media-badges{margin-inline-start:6px; font-size:.8rem; opacity:.75; white-space:nowrap;}
+  .media-badges{margin-inline-start:6px; font-size:1.15rem; line-height:1; vertical-align:-2px; white-space:nowrap;}
   .modal-links{
     display:flex;
     align-items:center;
@@ -744,17 +768,19 @@
     margin-bottom:12px;
   }
   .nav-btn{
-    background:var(--card-hover);
-    border:1px solid var(--border);
-    color:var(--text);
-    padding:8px 14px;
-    border-radius:8px;
+    background:var(--card);
+    border:1.5px solid var(--accent2);
+    color:var(--accent2);
+    padding:9px 16px;
+    border-radius:10px;
     cursor:pointer;
-    font-size:0.88rem;
+    font-size:0.95rem;
+    font-weight:700;
+    font-family:inherit;
   }
-  .nav-btn:hover{background:var(--border);}
+  .nav-btn:hover{background:var(--accent2); color:var(--accent2-contrast);}
   .nav-btn:disabled{opacity:0.4;cursor:default;}
-  .nav-btn:disabled:hover{background:var(--card-hover);}
+  .nav-btn:disabled:hover{background:var(--card); color:var(--accent2);}
   .autoplay-status{
     color:var(--muted);
     font-size:0.82rem;
@@ -925,7 +951,7 @@
       </div>
       <div class="media-row" id="mediaRow" hidden>
         <audio id="mediaAudio" controls preload="none"></audio>
-        <a id="mediaDownload" href="#" download><span aria-hidden="true">⬇</span> הורדת mp3</a>
+        <a id="mediaDownload" hidden><span class="mi" aria-hidden="true">⬇</span> הורדת mp3</a>
         <span id="mediaPdfs"></span>
       </div>
       <div class="modal-links">
@@ -954,7 +980,15 @@ const MEDIA = window.MEDIA_DATA || { base: "", files: {} };
 // הקלטות שמע בלבד (בלי סרטון) נכנסות לרשימה כשיעורים רגילים, עם מזהה שמתחיל ב-a
 const EXTRA = MEDIA.base && MEDIA.extra ? MEDIA.extra : { videos: {}, playlists: [] };
 const VIDEOS = { ...(DATA.videos || {}), ...EXTRA.videos };
-const mediaOf = (id) => (MEDIA.base && MEDIA.files[id]) || null;
+// קובץ תקין = מחרוזת לא ריקה. רשומה בלי שמע ובלי PDF תקינים נחשבת כאילו אין קבצים (אחרת הכפתור מוריד את דף האתר עצמו)
+const validKey = (k) => typeof k === "string" && k.trim() !== "" && !k.endsWith("/");
+const mediaOf = (id) => {
+  const f = MEDIA.base && MEDIA.files[id];
+  if(!f) return null;
+  const a = validKey(f.a) ? f.a : "";
+  const p = (Array.isArray(f.p) ? f.p : []).filter(validKey);
+  return a || p.length ? { a, p } : null;
+};
 const mediaUrl = (key) => MEDIA.base + "/" + key.split("/").map(encodeURIComponent).join("/");
 const lessonOf = (id) => ({ videoId: id, ...VIDEOS[id] });
 const playlists = [...(DATA.playlists || []), ...EXTRA.playlists].map(p => ({ ...p, lessons: p.videoIds.filter(id => VIDEOS[id]).map(lessonOf) }));
@@ -1261,7 +1295,7 @@ function renderTabs(){
 
   const addCard = (id, name, count, latest, place) => {
     const btn = document.createElement("button");
-    btn.className = "tab" + (!searching && id === currentPlaylistId ? " active" : "");
+    btn.className = "tab" + (id === GROUP_ID ? " tab-all" : "") + (!searching && id === currentPlaylistId ? " active" : "");
     const meta = [place ? `<span class="tab-place">${escapeHtml(place)}</span>` : "", latest ? `עודכן ${escapeHtml(formatDate(latest))}` : ""].filter(Boolean).join("");
     btn.innerHTML = `<span class="tab-main"><span class="tab-name">${escapeHtml(name)}</span>${meta ? `<span class="tab-meta">${meta}</span>` : ""}</span><span class="tab-count">${count}</span>`;
     btn.onclick = () => { currentPlaylistId = id; homeView = false; searchEl.value=""; visibleLimit = PAGE_SIZE; renderAll(); pushPlaylistURL(); };
@@ -1269,7 +1303,7 @@ function renderTabs(){
   };
   if(inGroup.length > 1){
     const all = listFor(GROUP_ID);
-    addCard(GROUP_ID, "כל השיעורים בקבוצה", all.length, all.reduce((m, s) => (s.published > m ? s.published : m), ""), "");
+    addCard(GROUP_ID, "📚 כל השיעורים בקבוצה", all.length, all.reduce((m, s) => (s.published > m ? s.published : m), ""), "");
   }
   visiblePlaylists.forEach(pl => {
     const showTopic = groupBy === "place" && pl.topic;
@@ -1505,11 +1539,15 @@ function setupMedia(id){
     mediaAudio.src = mediaUrl(m.a);
     mediaDownload.href = mediaUrl(m.a);
     mediaDownload.setAttribute("download", m.a.split("/").pop());
+  } else {
+    // בלי קובץ שמע אין קישור הורדה בכלל (קישור ריק היה מוריד את דף האתר)
+    mediaDownload.removeAttribute("href");
+    mediaDownload.removeAttribute("download");
   }
   (m.p || []).forEach((k, i) => {
     const a = document.createElement("a");
     a.href = mediaUrl(k); a.target = "_blank"; a.rel = "noopener";
-    a.innerHTML = `<span aria-hidden="true">📄</span> דף מקורות${m.p.length > 1 ? " " + (i + 1) : ""}`;
+    a.innerHTML = `<span class="mi" aria-hidden="true">📄</span> דף מקורות${m.p.length > 1 ? " " + (i + 1) : ""}`;
     mediaPdfs.appendChild(a);
   });
 }
