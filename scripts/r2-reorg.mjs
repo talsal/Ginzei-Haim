@@ -1,6 +1,6 @@
 // סידור תיקיות ב-R2 בבטחה: רק העתקה, אף פעם לא מוחקים.
 //   MODE=list  מדפיס את כל הקבצים בדלי (גודל, נתיב)
-//   MODE=copy  מעתיק לפי data/r2-reorg-plan.json ({ "moves": { "נתיב ישן": "נתיב חדש" } }) ובודק שהגודל זהה.
+//   MODE=copy  מעתיק לפי data/r2-reorg-plan.json (prefixes: תיקייה ישנה -> חדשה, או moves: קובץ -> קובץ) ובודק שהגודל זהה.
 //              DRY_RUN=1 רק מראה מה יועתק.
 // אחרי ההעתקה scripts/media-import.mjs מעדיף את הנתיב החדש (ראו moves שם), כך שהאתר עובר לנתיבים החדשים.
 import { execFile } from "node:child_process";
@@ -36,7 +36,11 @@ if (MODE === "list") {
   process.exit(0);
 }
 
-const { moves } = JSON.parse(await readFile("data/r2-reorg-plan.json", "utf8"));
+const plan = JSON.parse(await readFile("data/r2-reorg-plan.json", "utf8"));
+const moves = { ...(plan.moves || {}) };
+for (const [a, b] of Object.entries(plan.prefixes || {}))
+  for (const k of have.keys()) if (k.startsWith(a) && !k.endsWith("/")) moves[k] = b + k.slice(a.length);
+console.log(`${Object.keys(moves).length} קבצים בתוכנית`);
 let ok = 0, skip = 0, fail = 0;
 for (const [from, to] of Object.entries(moves)) {
   if (!have.has(from)) { console.log(`✗ לא קיים: ${from}`); fail++; continue; }

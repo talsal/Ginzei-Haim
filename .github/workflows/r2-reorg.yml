@@ -14,7 +14,7 @@ on:
         default: true
   push:
     branches: [claude/project-thread-ppx3yg]
-    paths: [".github/workflows/r2-reorg.yml", "scripts/r2-reorg.mjs"]
+    paths: [".github/workflows/r2-reorg.yml", "scripts/r2-reorg.mjs", "data/r2-reorg-plan.json"]
 
 permissions:
   contents: read
@@ -35,6 +35,6 @@ jobs:
           AWS_DEFAULT_REGION: auto
           AWS_REQUEST_CHECKSUM_CALCULATION: when_required
           AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
-          MODE: ${{ github.event_name == 'push' && 'list' || inputs.mode }}
+          MODE: ${{ github.event_name == 'push' && 'copy' || inputs.mode }}
           DRY_RUN: ${{ (github.event_name == 'push' || inputs.dry_run) && '1' || '0' }}
         run: node scripts/r2-reorg.mjs
