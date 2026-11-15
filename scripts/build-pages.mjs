@@ -101,7 +101,8 @@ ${robots ? `<meta name="robots" content="${robots}">\n` : ""}<link rel="canonica
 <meta property="og:description" content="${esc(description)}">
 <meta property="og:image" content="${esc(img)}">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📖</text></svg>">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/icon-32.png">
+<link rel="apple-touch-icon" href="/assets/icon-180.png">
 <link rel="stylesheet" href="/assets/static.css?v=1">
 ${ld.map(jsonLd).join("\n")}
 </head>
