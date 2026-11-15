@@ -60,8 +60,8 @@ jobs:
           AUTO: "1"
         run: |
           if [ -z "$R2_BUCKET" ]; then echo "אין סודות R2, מדלג"; exit 0; fi
-          node scripts/media-import.mjs || { echo "::warning::קישור הקבצים נכשל, ממשיכים בלי"; git checkout -- data/media.js; exit 0; }
-          if [ -n "$(git status --porcelain data/media.js)" ]; then echo "changed=true" >> "$GITHUB_OUTPUT"; fi
+          node scripts/media-import.mjs || { echo "::warning::קישור הקבצים נכשל, ממשיכים בלי"; git checkout -- data/media.js; git checkout -- data/r2-files.json 2>/dev/null || true; exit 0; }
+          if [ -n "$(git status --porcelain data/media.js data/r2-files.json)" ]; then echo "changed=true" >> "$GITHUB_OUTPUT"; fi
 
       - name: שמירת הנתונים בריפו
         if: steps.sync.outputs.skip != 'true' || steps.media.outputs.changed == 'true'

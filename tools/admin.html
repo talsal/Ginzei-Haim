@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<base target="_top">
+<style>
+  :root { --bg:#faf7f0; --card:#fff; --ink:#2b2b2b; --muted:#77706a; --line:#e6dfd2; --navy:#1f3a5f; --gold:#7a5a1f; --ok:#2e6b3a; --bad:#a33; --soft:#f3eee4; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, "Segoe UI", Arial, sans-serif; background:var(--bg); color:var(--ink); font-size:17px; }
+  header { position:sticky; top:0; z-index:5; background:var(--navy); color:#fff; padding:12px 16px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  header h1 { font-size:20px; margin:0; flex:1; min-width:180px; }
+  button { font:inherit; border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:10px; padding:8px 14px; cursor:pointer; }
+  button.primary { background:var(--gold); border-color:var(--gold); color:#fff; }
+  button.ghost { background:transparent; color:#fff; border-color:rgba(255,255,255,.5); }
+  button:disabled { opacity:.5; cursor:default; }
+  main { max-width:900px; margin:0 auto; padding:12px 16px 80px; }
+  .help { background:var(--soft); border:1px solid var(--line); border-radius:12px; padding:10px 14px; margin:8px 0 12px; line-height:1.55; font-size:15px; }
+  .help code { background:#fff; padding:1px 5px; border-radius:5px; direction:ltr; unicode-bidi:embed; }
+  .bar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:8px 0 12px; }
+  .bar input[type=search] { flex:1; min-width:200px; font:inherit; padding:9px 12px; border:1px solid var(--line); border-radius:10px; }
+  .tabs button.on { background:var(--navy); color:#fff; border-color:var(--navy); }
+  .status { margin:6px 0; min-height:1.4em; font-size:15px; }
+  .status.ok { color:var(--ok); } .status.err { color:var(--bad); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:10px; }
+  .card .top { display:flex; gap:8px; align-items:baseline; flex-wrap:wrap; }
+  .date { font-weight:600; color:var(--navy); white-space:nowrap; }
+  .place { font-size:14px; color:var(--muted); }
+  .title { margin:4px 0 8px; line-height:1.4; }
+  .row { display:flex; gap:6px; align-items:baseline; font-size:15px; margin:2px 0; }
+  .row .ic { width:1.4em; flex:none; text-align:center; }
+  .fname { direction:ltr; unicode-bidi:embed; word-break:break-all; }
+  .none { color:var(--bad); }
+  .tag { font-size:12px; border-radius:20px; padding:1px 8px; border:1px solid var(--line); color:var(--muted); }
+  .tag.manual { border-color:var(--gold); color:var(--gold); }
+  .tag.auto { border-color:var(--ok); color:var(--ok); }
+  .card .actions { margin-top:8px; }
+  .more { text-align:center; margin:16px 0; }
+  /* עורך */
+  .ed { margin-top:10px; border-top:1px dashed var(--line); padding-top:10px; }
+  .ed h3 { font-size:16px; margin:10px 0 6px; }
+  .ed input[type=search] { width:100%; font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:10px; }
+  .ed select { width:100%; font-size:15px; border:1px solid var(--line); border-radius:10px; margin-top:6px; direction:ltr; }
+  .chosen { display:flex; flex-direction:column; gap:4px; margin:6px 0; }
+  .chip { display:flex; gap:8px; align-items:center; background:var(--soft); border-radius:8px; padding:5px 8px; }
+  .chip .fname { flex:1; }
+  .chip button { padding:2px 9px; }
+  .ed .btns { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  a { color:var(--gold); }
+  .empty { text-align:center; color:var(--muted); padding:30px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>ניהול קבצים · גנזי חיים</h1>
+  <button class="ghost" id="syncBtn" type="button">🔄 סנכרון עכשיו</button>
+  <a href="https://ginzei-haim.org/" style="color:#fff">לאתר</a>
+</header>
+<main>
+  <div class="help">
+    האתר מצמיד <b>לבד</b> קובץ שמע לשיעור, לפי השם שלו: התאריך בהתחלה והמקום בסוף, למשל
+    <code>JH-26-11-18 Tfila - BVG.mp3</code>. אפשר לשים את הקובץ בכל תיקייה.
+    מה שלא הוצמד, או הוצמד לא נכון, מתקנים כאן בלחיצה על <b>שינוי</b>. השינוי מופיע באתר תוך כ-3 דקות.
+  </div>
+  <div class="bar">
+    <input type="search" id="q" placeholder="חיפוש שיעור לפי שם או תאריך (למשל 18.11)">
+  </div>
+  <div class="bar tabs" id="tabs">
+    <button type="button" data-f="recent" class="on">חודשיים אחרונים</button>
+    <button type="button" data-f="noaudio">בלי שמע</button>
+    <button type="button" data-f="manual">שינויים ידניים</button>
+    <button type="button" data-f="all">הכול</button>
+  </div>
+  <div class="status" id="status">טוען...</div>
+  <div id="list"></div>
+  <div class="more"><button type="button" id="moreBtn" hidden>עוד שיעורים</button></div>
+</main>
+<script>
+var KEY = <?!= JSON.stringify(key) ?>;
+var S = { data: null, filter: 'recent', q: '', shown: 40, open: null };
+var $ = function (id) { return document.getElementById(id); };
+
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function base(k) { return k.split('/').pop(); }
+function dir(k) { return k.split('/').slice(0, -1).join('/'); }
+function fmtDate(d) { if (!d) return ''; var p = d.slice(0, 10).split('-'); return p[2] + '.' + p[1] + '.' + p[0].slice(2); }
+function fileDay(k) { var m = base(k).match(/(?:^|\D)((?:20)?\d\d)-(\d\d)-(\d\d)(?!\d)/); if (!m) return null; return Date.parse((m[1].length === 2 ? '20' + m[1] : m[1]) + '-' + m[2] + '-' + m[3]); }
+function url(k) { return S.data.base + '/' + k.split('/').map(encodeURIComponent).join('/'); }
+function status(msg, cls) { var el = $('status'); el.textContent = msg || ''; el.className = 'status' + (cls ? ' ' + cls : ''); }
+
+function call(fn) {
+  var args = [].slice.call(arguments, 1);
+  return new Promise(function (res, rej) {
+    var r = google.script.run.withSuccessHandler(res).withFailureHandler(function (e) { rej(e && e.message ? e.message : String(e)); });
+    r[fn].apply(r, [KEY].concat(args));
+  });
+}
+
+function load() {
+  status('טוען את השיעורים...');
+  call('adminData').then(function (txt) {
+    S.data = JSON.parse(txt);
+    S.byId = {};
+    S.data.lessons.forEach(function (l) { S.byId[l.id] = l; });
+    S.mp3 = S.data.files.filter(function (k) { return /\.mp3$/i.test(k); });
+    S.pdf = S.data.files.filter(function (k) { return /\.pdf$/i.test(k); });
+    status('');
+    render();
+  }).catch(function (e) { status('הטעינה נכשלה: ' + e, 'err'); });
+}
+
+function matches(l) {
+  var f = S.filter, q = S.q.trim();
+  if (q) {
+    var hay = (l.t + ' ' + l.s + ' ' + l.pl + ' ' + fmtDate(l.d) + ' ' + l.d + ' ' + l.a + ' ' + l.p.join(' ')).toLowerCase();
+    return q.toLowerCase().split(/\s+/).every(function (w) { return hay.indexOf(w) >= 0; });
+  }
+  if (f === 'recent') return l.d >= new Date(Date.now() - 62 * 864e5).toISOString().slice(0, 10);
+  if (f === 'noaudio') return !l.a;
+  if (f === 'manual') return l.src === 'manual';
+  return true;
+}
+
+function render() {
+  if (!S.data) return;
+  var items = S.data.lessons.filter(matches);
+  var html = items.slice(0, S.shown).map(card).join('');
+  $('list').innerHTML = html || '<div class="empty">אין שיעורים להצגה</div>';
+  $('moreBtn').hidden = items.length <= S.shown;
+  if (S.open) openEditor(S.open, true);
+}
+
+function card(l) {
+  var tag = l.src === 'manual' ? '<span class="tag manual">נקבע ידנית</span>' : l.src === 'auto' ? '<span class="tag auto">הוצמד אוטומטית</span>' : '';
+  var a = l.a ? '<a class="fname" href="' + esc(url(l.a)) + '" target="_blank">' + esc(base(l.a)) + '</a>' : '<span class="none">אין קובץ שמע</span>';
+  var p = l.p.length ? l.p.map(function (k) { return '<a class="fname" href="' + esc(url(k)) + '" target="_blank">' + esc(base(k)) + '</a>'; }).join('<br>') : '<span style="color:var(--muted)">אין דף מקורות</span>';
+  return '<div class="card" id="c-' + esc(l.id) + '">' +
+    '<div class="top"><span class="date">' + fmtDate(l.d) + '</span><span class="place">' + esc([l.pl, l.s].filter(Boolean).join(' · ')) + '</span>' + tag + '</div>' +
+    '<div class="title">' + esc(l.t) + '</div>' +
+    '<div class="row"><span class="ic">🎧</span><span>' + a + '</span></div>' +
+    '<div class="row"><span class="ic">📄</span><span>' + p + '</span></div>' +
+    '<div class="actions"><button type="button" data-edit="' + esc(l.id) + '">שינוי</button></div>' +
+    '<div class="edslot"></div></div>';
+}
+
+// קבצים מוצעים: קודם אלה שהתאריך שלהם קרוב ליום השיעור
+function sorted(list, l) {
+  var day = Date.parse((l.d || '').slice(0, 10));
+  return list.slice().sort(function (x, y) {
+    var dx = fileDay(x), dy = fileDay(y);
+    var ax = dx == null || isNaN(day) ? 1e15 : Math.abs(day - dx), ay = dy == null || isNaN(day) ? 1e15 : Math.abs(day - dy);
+    return ax - ay || x.localeCompare(y);
+  });
+}
+
+function options(list, q, l, cur) {
+  var words = q.toLowerCase().split(/\s+/).filter(Boolean);
+  var rows = sorted(list, l).filter(function (k) { var s = k.toLowerCase(); return words.every(function (w) { return s.indexOf(w) >= 0; }); }).slice(0, 200);
+  return rows.map(function (k) { return '<option value="' + esc(k) + '"' + (k === cur ? ' selected' : '') + '>' + esc(base(k)) + '  —  ' + esc(dir(k)) + '</option>'; }).join('');
+}
+
+function openEditor(id, keep) {
+  var l = S.byId[id], c = $('c-' + id);
+  if (!l || !c) return;
+  if (!keep || !S.ed || S.ed.id !== id) S.ed = { id: id, a: l.a, p: l.p.slice() };
+  S.open = id;
+  var e = S.ed;
+  c.querySelector('.edslot').innerHTML =
+    '<div class="ed">' +
+    '<h3>🎧 קובץ שמע</h3>' +
+    '<div class="chosen" id="edA">' + (e.a ? chip(e.a, 'a') : '<div class="none">בלי קובץ שמע</div>') + '</div>' +
+    '<input type="search" id="edAq" placeholder="חיפוש קובץ שמע (שם, תאריך כמו 26-11-18, או תיקייה)">' +
+    '<select id="edAs" size="6">' + options(S.mp3, '', l, e.a) + '</select>' +
+    '<h3>📄 דפי מקורות (PDF)</h3>' +
+    '<div class="chosen" id="edP">' + (e.p.length ? e.p.map(function (k) { return chip(k, 'p'); }).join('') : '<div style="color:var(--muted)">אין</div>') + '</div>' +
+    '<input type="search" id="edPq" placeholder="חיפוש PDF להוספה">' +
+    '<select id="edPs" size="6">' + options(S.pdf, '', l) + '</select>' +
+    '<div class="btns">' +
+    '<button type="button" class="primary" id="edSave">שמירה</button>' +
+    '<button type="button" id="edCancel">ביטול</button>' +
+    (l.src === 'manual' ? '<button type="button" id="edAuto">ביטול השינוי הידני (חזרה לאוטומטי)</button>' : '') +
+    '</div></div>';
+  $('edAq').oninput = function () { $('edAs').innerHTML = options(S.mp3, this.value, l, e.a); };
+  $('edPq').oninput = function () { $('edPs').innerHTML = options(S.pdf, this.value, l); };
+  $('edAs').onchange = function () { e.a = this.value; openEditor(id, true); };
+  $('edPs').onchange = function () { if (e.p.indexOf(this.value) < 0) e.p.push(this.value); openEditor(id, true); };
+  $('edSave').onclick = function () { save(l, { a: e.a || null, p: e.p }); };
+  $('edCancel').onclick = function () { S.open = null; S.ed = null; c.querySelector('.edslot').innerHTML = ''; };
+  if ($('edAuto')) $('edAuto').onclick = function () { save(l, null); };
+}
+
+function chip(k, kind) {
+  return '<div class="chip"><a class="fname" href="' + esc(url(k)) + '" target="_blank">' + esc(base(k)) + '</a>' +
+    '<span class="place">' + esc(dir(k)) + '</span><button type="button" data-rm="' + kind + '" data-k="' + esc(k) + '" title="הסרה">✕</button></div>';
+}
+
+function save(l, value) {
+  var btns = document.querySelectorAll('.ed button');
+  for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+  status('שומר...');
+  call('adminSave', l.id, value, l.t).then(function () {
+    if (value) { l.a = value.a || ''; l.p = value.p.slice(); l.src = 'manual'; }
+    else { l.src = ''; }
+    S.open = null; S.ed = null;
+    status(value ? '✓ נשמר. האתר יתעדכן בעוד כ-3 דקות.' : '✓ השינוי הידני בוטל. ההתאמה האוטומטית תחזור בעוד כ-3 דקות.', 'ok');
+    render();
+  }).catch(function (e) {
+    status('השמירה נכשלה: ' + e, 'err');
+    for (var i = 0; i < btns.length; i++) btns[i].disabled = false;
+  });
+}
+
+document.addEventListener('click', function (ev) {
+  var t = ev.target;
+  if (t.dataset && t.dataset.edit) { openEditor(t.dataset.edit); return; }
+  if (t.dataset && t.dataset.rm && S.ed) {
+    if (t.dataset.rm === 'a') S.ed.a = '';
+    else S.ed.p = S.ed.p.filter(function (k) { return k !== t.dataset.k; });
+    openEditor(S.ed.id, true);
+  }
+});
+$('tabs').addEventListener('click', function (ev) {
+  var f = ev.target.dataset && ev.target.dataset.f; if (!f) return;
+  S.filter = f; S.shown = 40; S.open = null;
+  [].forEach.call(this.children, function (b) { b.classList.toggle('on', b.dataset.f === f); });
+  render();
+});
+$('q').addEventListener('input', function () { S.q = this.value; S.shown = 40; S.open = null; render(); });
+$('moreBtn').onclick = function () { S.shown += 60; render(); };
+$('syncBtn').onclick = function () {
+  var b = this; b.disabled = true; status('מפעיל סנכרון...');
+  call('adminSync').then(function (r) {
+    status(r === 'recent' ? 'הסנכרון כבר רץ. האתר יתעדכן בעוד כ-2 דקות.' : '✓ הסנכרון הופעל. שיעורים וקבצים חדשים יופיעו באתר בעוד כ-2 דקות.', 'ok');
+  }).catch(function (e) { status('הסנכרון לא הופעל: ' + e, 'err'); }).then(function () { setTimeout(function () { b.disabled = false; }, 60000); });
+};
+load();
+</script>
+</body>
+</html>

@@ -2,7 +2,8 @@
  * כפתור הסנכרון של הרב (Google Apps Script)
  *
  * מה זה עושה:
- *  1. doGet: קישור שהרב שומר במועדפים / במסך הבית בטלפון. לחיצה עליו מפעילה סנכרון מלא של האתר.
+ *  1. doGet: קישור שהרב שומר במועדפים / במסך הבית בטלפון. פותח את דף הניהול (קובץ admin.html בפרויקט):
+ *     רשימת השיעורים עם קבצי השמע וה-PDF שלהם, שינוי ידני של הקבצים, וכפתור "סנכרון עכשיו".
  *  2. quickCheck: רץ אוטומטית כל 10 דקות (טריגר זמן) ומפעיל "בדיקה מהירה",
  *     כי התזמון של GitHub עצמו מתעכב ולפעמים רץ רק כמה פעמים ביום.
  *
@@ -10,7 +11,8 @@
  * הוראות התקנה: ראו README.md, בסעיף "כפתור סנכרון לרב".
  *
  * Script Properties שצריך להגדיר:
- *   GITHUB_TOKEN  טוקן fine-grained עם הרשאת Actions: Read and write לריפו Ginzei-Haim בלבד
+ *   GITHUB_TOKEN  טוקן fine-grained לריפו Ginzei-Haim בלבד, עם הרשאות Actions: Read and write
+ *                 ו-Contents: Read and write (דף הניהול שומר את השינויים בקובץ data/media-overrides.json)
  *   SYNC_KEY      סיסמה קצרה שמופיעה בקישור של הרב (?key=...), כדי שזרים לא יפעילו סנכרון
  */
 
@@ -38,24 +40,17 @@ function dispatch_(quick) {
   return res.getResponseCode(); // 204 = הצליח
 }
 
-// הקישור של הרב
+// הקישור של הרב: דף הניהול (רשימת שיעורים, שיוך שמע ו-PDF, וכפתור סנכרון)
 function doGet(e) {
   var key = PropertiesService.getScriptProperties().getProperty('SYNC_KEY');
-  if (key && (!e || !e.parameter || e.parameter.key !== key)) {
+  if (!key || !e || !e.parameter || e.parameter.key !== key) {
     return page_('הקישור לא תקין', 'חסרה או שגויה הסיסמה בקישור. כדאי לבקש את הקישור המלא מחדש.', false);
   }
-  // הגנה מלחיצות כפולות: לא יותר מהפעלה אחת בדקה
-  var cache = CacheService.getScriptCache();
-  if (cache.get('recent')) {
-    return page_('הסנכרון כבר רץ', 'הסנכרון הופעל לפני פחות מדקה. האתר יתעדכן בעוד כ-2 דקות.', true);
-  }
-  var code;
-  try { code = dispatch_(false); } catch (err) { code = String(err); }
-  if (code === 204) {
-    cache.put('recent', '1', 60);
-    return page_('הסנכרון הופעל ✓', 'השיעורים החדשים יופיעו באתר בעוד כ-2 דקות.', true);
-  }
-  return page_('משהו השתבש', 'הסנכרון לא הופעל (קוד ' + code + '). כדאי לעדכן את טל.', false);
+  var t = HtmlService.createTemplateFromFile('admin');
+  t.key = key;
+  return t.evaluate()
+    .setTitle('ניהול קבצים - גנזי חיים')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
 // טריגר זמן: כל 10 דקות
@@ -84,4 +79,127 @@ function page_(title, text, ok) {
   return HtmlService.createHtmlOutput(html)
     .setTitle('סנכרון גנזי חיים')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+// ======================= דף הניהול =======================
+
+var OVERRIDES = 'data/media-overrides.json';
+
+function checkKey_(key) {
+  var k = PropertiesService.getScriptProperties().getProperty('SYNC_KEY');
+  if (!k || key !== k) throw new Error('אין הרשאה');
+}
+
+function gh_(method, path, payload, accept) {
+  var token = PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN');
+  var opt = {
+    method: method,
+    headers: {
+      Authorization: 'Bearer ' + token,
+      Accept: accept || 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    },
+    muteHttpExceptions: true
+  };
+  if (payload) { opt.contentType = 'application/json'; opt.payload = JSON.stringify(payload); }
+  return UrlFetchApp.fetch('https://api.github.com/repos/' + REPO + '/' + path, opt);
+}
+
+// קובץ מהריפו (ענף main) כטקסט
+function raw_(path) {
+  var r = gh_('get', 'contents/' + path + '?ref=main', null, 'application/vnd.github.raw+json');
+  if (r.getResponseCode() === 404) return '';
+  if (r.getResponseCode() !== 200) throw new Error('קריאת ' + path + ' נכשלה (' + r.getResponseCode() + ')');
+  return r.getContentText('UTF-8');
+}
+
+function windowVar_(text, name) {
+  var m = text.match(new RegExp('window\\.' + name + '\\s*=\\s*([\\s\\S]*?);?\\s*$'));
+  return m ? JSON.parse(m[1]) : {};
+}
+
+function readOverrides_() {
+  var r = gh_('get', 'contents/' + OVERRIDES + '?ref=main');
+  if (r.getResponseCode() === 404) return { data: {}, sha: null };
+  if (r.getResponseCode() !== 200) throw new Error('קריאת התיקונים נכשלה (' + r.getResponseCode() + ')');
+  var j = JSON.parse(r.getContentText());
+  var text = Utilities.newBlob(Utilities.base64Decode(j.content)).getDataAsString('UTF-8');
+  return { data: JSON.parse(text || '{}'), sha: j.sha };
+}
+
+// כל מה שהדף צריך: שיעורים, הקבצים שלהם, ורשימת הקבצים ב-R2
+function adminData(key) {
+  checkKey_(key);
+  var L = windowVar_(raw_('data/lessons.js'), 'LESSONS_DATA');
+  var M = windowVar_(raw_('data/media.js'), 'MEDIA_DATA');
+  var report = JSON.parse(raw_('data/media-report.json') || '{"linked":[]}');
+  var r2 = JSON.parse(raw_('data/r2-files.json') || '[]');
+  var ovr = readOverrides_().data;
+  var auto = {};
+  (report.linked || []).forEach(function (l) { auto[l.id] = 1; });
+  var files = M.files || {};
+  var extra = M.extra || { videos: {}, playlists: [] };
+  var out = [], seen = {};
+  function add(videos, playlists) {
+    (playlists || []).forEach(function (pl) {
+      (pl.videoIds || []).forEach(function (id) {
+        var v = videos[id];
+        if (!v || seen[id]) return;
+        seen[id] = 1;
+        var f = files[id] || {};
+        out.push({
+          id: id, t: v.title, d: v.published || '', pl: pl.place || '', s: pl.topic || pl.name || '',
+          a: f.a || '', p: f.p || [], ao: !!v.audioOnly,
+          src: ovr[id] ? 'manual' : auto[id] ? 'auto' : ''
+        });
+      });
+    });
+  }
+  add(L.videos || {}, L.playlists || []);
+  add(extra.videos || {}, extra.playlists || []);
+  out.sort(function (x, y) { return x.d < y.d ? 1 : x.d > y.d ? -1 : 0; });
+  return JSON.stringify({ base: M.base || '', lessons: out, files: r2, overrides: ovr });
+}
+
+// שמירת תיקון ידני לשיעור. value = {a: 'קובץ' או null, p: [...]}, או null כדי לחזור לאוטומטי
+function adminSave(key, id, value, title) {
+  checkKey_(key);
+  if (!/^[A-Za-z0-9_-]{1,40}$/.test(id)) throw new Error('מזהה שיעור לא תקין');
+  for (var attempt = 0; attempt < 3; attempt++) {
+    var cur = readOverrides_();
+    var data = cur.data || {};
+    if (value) {
+      var v = {};
+      v.a = value.a ? String(value.a) : null;
+      v.p = (value.p || []).map(String);
+      if (title) v._title = String(title).slice(0, 120);
+      data[id] = v;
+    } else {
+      delete data[id];
+    }
+    var text = JSON.stringify(data, null, 2) + '\n';
+    var body = {
+      message: (value ? 'תיקון קבצים ידני' : 'חזרה להתאמה אוטומטית') + ' מדף הניהול: ' + (title || id),
+      content: Utilities.base64Encode(text, Utilities.Charset.UTF_8),
+      branch: 'main'
+    };
+    if (cur.sha) body.sha = cur.sha;
+    var r = gh_('put', 'contents/' + OVERRIDES, body);
+    var code = r.getResponseCode();
+    if (code === 200 || code === 201) return 'ok';
+    if (code !== 409 && code !== 422) throw new Error('השמירה נכשלה (' + code + ')');
+    Utilities.sleep(1500);
+  }
+  throw new Error('השמירה נכשלה, כדאי לנסות שוב');
+}
+
+// כפתור "סנכרון עכשיו"
+function adminSync(key) {
+  checkKey_(key);
+  var cache = CacheService.getScriptCache();
+  if (cache.get('recent')) return 'recent';
+  var code = dispatch_(false);
+  if (code !== 204) throw new Error('הסנכרון לא הופעל (קוד ' + code + ')');
+  cache.put('recent', '1', 60);
+  return 'ok';
 }
