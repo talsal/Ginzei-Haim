@@ -81,6 +81,11 @@ jobs:
             echo "אין שיעורים חדשים"
           fi
 
+      # דפים סטטיים לכל סדרה ושיעור + מפת אתר, כדי שגוגל יוכל לאנדקס את השיעורים (לא נשמרים בריפו)
+      - name: בניית דפים לגוגל
+        if: steps.sync.outputs.skip != 'true' || steps.media.outputs.changed == 'true'
+        run: node scripts/build-pages.mjs
+
       - if: steps.sync.outputs.skip != 'true' || steps.media.outputs.changed == 'true'
         uses: actions/configure-pages@v5
 
