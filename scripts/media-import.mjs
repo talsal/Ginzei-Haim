@@ -246,11 +246,21 @@ for (const pl of extra.playlists) pl.videoIds.sort((a, b) => (extra.videos[b].pu
 
 // ---- שיעורים חדשים (לא באתר הישן): התאמה לפי שם הקובץ, ותיקונים ידניים ----
 const { autoMatch } = await import("./media-match.mjs");
-const report = autoMatch({ files, have: [...have.keys()], lessonsPath: path.join(ROOT, "data", "lessons.js"), config });
 let overrides = {};
 try { overrides = JSON.parse(await readFile(path.join(ROOT, "data", "media-overrides.json"), "utf8")); } catch {}
-for (const [id, o] of Object.entries(overrides)) {
-  if (id.startsWith("_") || !o || typeof o !== "object") continue;
+const ovr = Object.entries(overrides).filter(([id, o]) => !id.startsWith("_") && o && typeof o === "object");
+// שיעור שנקבע לו שמע ידנית (גם "בלי שמע") לא מקבל התאמה אוטומטית, וקובץ שהוצמד ידנית לא יוצמד אוטומטית לשיעור אחר
+const report = autoMatch({
+  files, have: [...have.keys()], lessonsPath: path.join(ROOT, "data", "lessons.js"), config,
+  skip: new Set(ovr.filter(([, o]) => "a" in o).map(([id]) => id)),
+  reserved: new Set(ovr.map(([, o]) => o.a).filter(Boolean)),
+});
+// רשימת הקבצים ב-R2, בשביל דף הניהול
+await writeFile(
+  path.join(ROOT, "data", "r2-files.json"),
+  JSON.stringify([...have.keys()].filter((k) => /\.(mp3|pdf)$/i.test(k)).sort()) + "\n"
+);
+for (const [id, o] of ovr) {
   const f = { ...(files[id] || {}) };
   if ("a" in o) { if (o.a) f.a = o.a; else delete f.a; }
   if ("p" in o) { if (o.p && o.p.length) f.p = o.p; else delete f.p; }

@@ -38,7 +38,7 @@ export function fileCode(key) {
   return last.toUpperCase();
 }
 
-export function autoMatch({ files, have, lessonsPath, config }) {
+export function autoMatch({ files, have, lessonsPath, config, skip = new Set(), reserved = new Set() }) {
   const ctx = { window: {} };
   vm.runInNewContext(readFileSync(lessonsPath, "utf8"), ctx);
   const { videos = {}, playlists = [] } = ctx.window.LESSONS_DATA;
@@ -52,12 +52,12 @@ export function autoMatch({ files, have, lessonsPath, config }) {
     if (!seriesOf[id]) seriesOf[id] = pl;
   }
 
-  const used = new Set();
+  const used = new Set(reserved);
   for (const f of Object.values(files)) { if (f.a) used.add(f.a); }
   const mp3s = have.filter((k) => /\.mp3$/i.test(k) && !used.has(k) && fileDate(k) !== null);
   const pdfs = have.filter((k) => /\.pdf$/i.test(k));
 
-  const lessons = Object.keys(videos).filter((id) => !(files[id] && files[id].a) && videos[id].published);
+  const lessons = Object.keys(videos).filter((id) => !skip.has(id) && !(files[id] && files[id].a) && videos[id].published);
   const pub = (id) => Date.parse(videos[id].published.slice(0, 10));
 
   // כל הזוגות האפשריים, עם המרחק בימים

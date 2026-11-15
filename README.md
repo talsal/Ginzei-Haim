@@ -36,23 +36,25 @@
 - **תיקון ידני:** `data/media-overrides.json` (מזהה סרטון → `a` קובץ שמע, `p` רשימת PDF). גובר על הכול.
 - ב-`config.json` יש לשים ב-`mediaBaseUrl` את הכתובת הציבורית של הבאקט (בלי `/` בסוף). כל עוד היא ריקה, הכפתורים לא מופיעים.
 
-## כפתור סנכרון לרב
-התזמון של GitHub ("כל 15 דקות") בפועל מתעכב ורץ רק כמה פעמים ביום. לכן יש סקריפט קטן ב-Google Apps Script
-([`tools/sync-button.gs`](tools/sync-button.gs)), חינמי, שעושה שני דברים:
-- **קישור לרב**: לחיצה עליו (מהמועדפים או מאייקון במסך הבית) מפעילה סנכרון מיד. האתר מתעדכן תוך כ-2 דקות.
-- **בדיקה אוטומטית כל 10 דקות**: אם הועלה סרטון חדש, הוא מופיע באתר בלי שאף אחד יעשה כלום.
+## דף הניהול של הרב (כפתור סנכרון + קבצים)
+התזמון של GitHub ("כל 15 דקות") בפועל מתעכב ורץ רק כמה פעמים ביום. לכן יש סקריפט קטן ב-Google Apps Script, חינמי,
+([`tools/sync-button.gs`](tools/sync-button.gs) + [`tools/admin.html`](tools/admin.html)) שעושה שני דברים:
+- **בדיקה אוטומטית כל 10 דקות**: אם הועלה סרטון חדש או קובץ חדש ל-R2, הוא מופיע באתר בלי שאף אחד יעשה כלום.
+- **דף ניהול לרב** (קישור עם סיסמה): רשימת השיעורים עם קובצי השמע וה-PDF שלהם, שינוי ידני של הקבצים לכל שיעור,
+  וכפתור "סנכרון עכשיו". שינוי ידני נשמר ב-`data/media-overrides.json` וגובר על ההתאמה האוטומטית.
 
 הטוקן של GitHub שמור רק בתוך הסקריפט של גוגל, לא באתר ולא בקישור.
 
-התקנה חד-פעמית (כ-10 דקות):
-1. **טוקן ב-GitHub**: [יצירת Fine-grained token](https://github.com/settings/personal-access-tokens/new) →
-   Repository access: Only select repositories → `Ginzei-Haim` → Permissions → Actions: **Read and write** → Generate. להעתיק.
+התקנה חד-פעמית:
+1. **טוקן ב-GitHub**: [Fine-grained tokens](https://github.com/settings/personal-access-tokens) →
+   Repository access: Only select repositories → `Ginzei-Haim` → Permissions → Actions: **Read and write** ו-Contents: **Read and write**. להעתיק.
 2. **הסקריפט**: [script.new](https://script.new) → למחוק את מה שיש ולהדביק את התוכן של `tools/sync-button.gs` → שמירה.
+   ואז **+** ליד Files → HTML → בשם `admin` → להדביק את התוכן של `tools/admin.html` → שמירה.
 3. **סודות**: גלגל השיניים (Project Settings) → Script Properties → להוסיף `GITHUB_TOKEN` (הטוקן) ו-`SYNC_KEY` (סיסמה קצרה, למשל מילה ומספר).
 4. **בדיקה אוטומטית**: בעורך לבחור את הפונקציה `installTrigger` → Run → לאשר הרשאות (Advanced → Go to project).
 5. **הקישור**: Deploy → New deployment → סוג Web app → Execute as: **Me**, Who has access: **Anyone** → Deploy.
    הקישור של הרב: כתובת ה-Web app ועוד `?key=` והסיסמה, למשל `https://script.google.com/macros/s/.../exec?key=SISMA`.
-   בטלפון: לפתוח את הקישור ב-Chrome/Safari → "הוסף למסך הבית".
+   אחרי עדכון קוד: Deploy → Manage deployments → עריכה (עיפרון) → Version: New version → Deploy (הקישור נשאר אותו קישור).
 
 ## נושאים (קטגוריות)
 כל פלייליסט ביוטיוב הופך לנושא באתר. כדי לקבץ פלייליסטים לקטגוריות, עורכים את `categories` ב-`config.json`:
