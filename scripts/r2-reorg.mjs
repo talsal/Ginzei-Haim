@@ -47,7 +47,7 @@ for (const [from, to] of Object.entries(moves)) {
   if (have.get(to) === have.get(from)) { skip++; continue; }
   if (DRY) { console.log(`→ ${from}  =>  ${to}`); ok++; continue; }
   try {
-    await aws("s3api", "copy-object", "--bucket", R2_BUCKET, "--copy-source", `${R2_BUCKET}/${from.split("/").map(encodeURIComponent).join("/")}`, "--key", to);
+    await aws("s3api", "copy-object", "--bucket", R2_BUCKET, "--copy-source", `${R2_BUCKET}/${from}`, "--key", to);
     const { stdout } = await aws("s3api", "head-object", "--bucket", R2_BUCKET, "--key", to);
     if (JSON.parse(stdout).ContentLength !== have.get(from)) throw new Error("גודל לא תואם");
     console.log(`✓ ${to}`); ok++;
