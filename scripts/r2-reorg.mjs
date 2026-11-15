@@ -28,7 +28,11 @@ async function listAll() {
 const have = await listAll();
 if (MODE === "list") {
   console.log(`${have.size} קבצים`);
-  for (const k of [...have.keys()].sort()) console.log(`KEY\t${have.get(k)}\t${k}`);
+  const dirs = {};
+  for (const k of have.keys()) { const d = k.split("/").slice(0, -1).join("/") || "(שורש)"; dirs[d] = (dirs[d] || 0) + 1; }
+  for (const d of Object.keys(dirs).sort()) console.log(`DIR\t${dirs[d]}\t${d}`);
+  const pre = (process.env.PREFIXES || "").split("|").filter(Boolean);
+  for (const k of [...have.keys()].sort()) if (pre.some((p) => k.startsWith(p))) console.log(`KEY\t${k}`);
   process.exit(0);
 }
 
