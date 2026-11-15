@@ -48,8 +48,23 @@ jobs:
             node scripts/sync.mjs
           fi
 
+      # בכל בדיקה (גם מהירה): אם הרב העלה ל-R2 קובץ שמע/PDF חדש, מקשרים אותו לשיעור לפי שם הקובץ (scripts/media-match.mjs)
+      - name: קישור קבצי שמע ו-PDF חדשים מ-R2
+        id: media
+        env:
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          AUTO: "1"
+        run: |
+          if [ -z "$R2_BUCKET" ]; then echo "אין סודות R2, מדלג"; exit 0; fi
+          node scripts/media-import.mjs || { echo "::warning::קישור הקבצים נכשל, ממשיכים בלי"; git checkout -- data/media.js; exit 0; }
+          if [ -n "$(git status --porcelain data/media.js)" ]; then echo "changed=true" >> "$GITHUB_OUTPUT"; fi
+
       - name: שמירת הנתונים בריפו
-        if: steps.sync.outputs.skip != 'true'
+        if: steps.sync.outputs.skip != 'true' || steps.media.outputs.changed == 'true'
         run: |
           if [ -n "$(git status --porcelain data/)" ]; then
             git config user.name "github-actions[bot]"
@@ -68,17 +83,17 @@ jobs:
 
       # דפים סטטיים לכל סדרה ושיעור + מפת אתר, כדי שגוגל יוכל לאנדקס את השיעורים (לא נשמרים בריפו)
       - name: בניית דפים לגוגל
-        if: steps.sync.outputs.skip != 'true'
+        if: steps.sync.outputs.skip != 'true' || steps.media.outputs.changed == 'true'
         run: node scripts/build-pages.mjs
 
-      - if: steps.sync.outputs.skip != 'true'
+      - if: steps.sync.outputs.skip != 'true' || steps.media.outputs.changed == 'true'
         uses: actions/configure-pages@v5
 
-      - if: steps.sync.outputs.skip != 'true'
+      - if: steps.sync.outputs.skip != 'true' || steps.media.outputs.changed == 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: .
 
-      - if: steps.sync.outputs.skip != 'true'
+      - if: steps.sync.outputs.skip != 'true' || steps.media.outputs.changed == 'true'
         id: deployment
         uses: actions/deploy-pages@v4

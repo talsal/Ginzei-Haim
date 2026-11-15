@@ -10,6 +10,8 @@
 //   RATE_LIMIT הגבלת מהירות הורדה מהאתר הישן (ברירת מחדל 8M = 8MB לשנייה)
 //   DRY_RUN=1  בדיקה בלי העלאה
 //   LINK_ONLY=1  בלי העתקה, רק קישור קבצים שכבר ב-R2
+//   AUTO=1     מצב אוטומטי (רץ בכל בדיקה מהירה): בלי פנייה לאתר הישן (משתמשים ב-data/media-manifest.json השמור),
+//              בלי העתקה, ורק מקשרים. שיעורים חדשים מקבלים קבצים לפי התאריך וקוד המקום בשם הקובץ (ראו autoMatch).
 // דורש את aws CLI ו-curl (מותקנים ב-GitHub Actions).
 
 import { readFile, writeFile } from "node:fs/promises";
@@ -30,7 +32,8 @@ const DELAY_MS = 600; // נימוס כלפי השרת של הישיבה
 const LIMIT = parseInt(process.env.LIMIT || "0", 10);
 const SCOPE = process.env.SCOPE || "youtube";
 const DRY = process.env.DRY_RUN === "1";
-const LINK_ONLY = process.env.LINK_ONLY === "1"; // בלי העתקה: רק מקשרים קבצים שכבר קיימים ב-R2
+const AUTO = process.env.AUTO === "1";
+const LINK_ONLY = AUTO || process.env.LINK_ONLY === "1"; // בלי העתקה: רק מקשרים קבצים שכבר קיימים ב-R2
 const { R2_ENDPOINT, R2_BUCKET } = process.env;
 if (!DRY && (!R2_ENDPOINT || !R2_BUCKET)) {
   console.error("חסרים R2_ENDPOINT / R2_BUCKET");
@@ -122,13 +125,19 @@ function copyOne(srcPath, key) {
 }
 
 // ---- main ----
-console.log("טוען את רשימת השיעורים מהאתר הישן...");
-const old = await fetchOldLessons();
-console.log(`${old.length} שיעורים באתר הישן`);
+let old;
+if (AUTO) {
+  old = JSON.parse(await readFile(path.join(ROOT, "data", "media-manifest.json"), "utf8")).lessons;
+  console.log(`${old.length} שיעורים ברשימה השמורה של האתר הישן`);
+} else {
+  console.log("טוען את רשימת השיעורים מהאתר הישן...");
+  old = await fetchOldLessons();
+  console.log(`${old.length} שיעורים באתר הישן`);
+  // מניפסט מלא (לשלבים הבאים, כולל הקלטות שמע בלבד)
+  await writeFile(path.join(ROOT, "data", "media-manifest.json"), JSON.stringify({ generatedAt: new Date().toISOString(), lessons: old }));
+}
 
 const ours = await ourVideoIds();
-// מניפסט מלא (לשלבים הבאים, כולל הקלטות שמע בלבד)
-await writeFile(path.join(ROOT, "data", "media-manifest.json"), JSON.stringify({ generatedAt: new Date().toISOString(), lessons: old }));
 
 const seenYt = new Set();
 let targets = old.filter((l) => {
@@ -234,6 +243,21 @@ for (const l of old) {
   pl.videoIds.push(id);
 }
 for (const pl of extra.playlists) pl.videoIds.sort((a, b) => (extra.videos[b].published || "").localeCompare(extra.videos[a].published || ""));
+
+// ---- שיעורים חדשים (לא באתר הישן): התאמה לפי שם הקובץ, ותיקונים ידניים ----
+const { autoMatch } = await import("./media-match.mjs");
+const report = autoMatch({ files, have: [...have.keys()], lessonsPath: path.join(ROOT, "data", "lessons.js"), config });
+let overrides = {};
+try { overrides = JSON.parse(await readFile(path.join(ROOT, "data", "media-overrides.json"), "utf8")); } catch {}
+for (const [id, o] of Object.entries(overrides)) {
+  if (id.startsWith("_") || !o || typeof o !== "object") continue;
+  const f = { ...(files[id] || {}) };
+  if ("a" in o) { if (o.a) f.a = o.a; else delete f.a; }
+  if ("p" in o) { if (o.p && o.p.length) f.p = o.p; else delete f.p; }
+  if (f.a || f.p) files[id] = f; else delete files[id];
+}
+await writeFile(path.join(ROOT, "data", "media-report.json"), JSON.stringify(report, null, 1) + "\n");
+console.log(`התאמה אוטומטית: ${report.linked.length} שיעורים קושרו, ${report.unmatched.length} שיעורים אחרונים עדיין בלי שמע`);
 
 const base = (config.mediaBaseUrl || "").replace(/\/+$/, "");
 await writeFile(
