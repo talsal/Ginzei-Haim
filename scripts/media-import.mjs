@@ -157,7 +157,15 @@ const byBase = new Map();
 const indexKey = (k) => { if (/\.(mp3|pdf)$/i.test(k)) byBase.set(norm(baseOf(k)), k); };
 for (const k of have.keys()) indexKey(k);
 const keyOf = (pth) => pth.replace(/^JH\//, "");
-const find = (pth) => (have.has(keyOf(pth)) ? keyOf(pth) : have.has(pth) ? pth : byBase.get(norm(baseOf(pth))) || "");
+const find0 = (pth) => (have.has(keyOf(pth)) ? keyOf(pth) : have.has(pth) ? pth : byBase.get(norm(baseOf(pth))) || "");
+// סידור תיקיות (data/r2-reorg-plan.json): אם קובץ כבר הועתק לנתיב החדש, מקשרים לנתיב החדש. הישן נשאר ב-R2 כגיבוי.
+let reorg = {};
+try { reorg = JSON.parse(await readFile(path.join(ROOT, "data", "r2-reorg-plan.json"), "utf8")).prefixes || {}; } catch {}
+const moved = (k) => {
+  for (const [a, b] of Object.entries(reorg)) if (k && k.startsWith(a)) { const n = b + k.slice(a.length); if (have.has(n)) return n; }
+  return k;
+};
+const find = (pth) => moved(find0(pth));
 {
   let exact = 0, byName = 0, missing = 0;
   for (const l of targets) for (const pth of [l.audio, ...l.pdfs].filter(Boolean)) {
@@ -246,19 +254,21 @@ for (const pl of extra.playlists) pl.videoIds.sort((a, b) => (extra.videos[b].pu
 
 // ---- שיעורים חדשים (לא באתר הישן): התאמה לפי שם הקובץ, ותיקונים ידניים ----
 const { autoMatch } = await import("./media-match.mjs");
+// בלי העותקים הישנים של קבצים שכבר הועתקו לנתיב חדש
+const current = [...have.keys()].filter((k) => moved(k) === k);
 let overrides = {};
 try { overrides = JSON.parse(await readFile(path.join(ROOT, "data", "media-overrides.json"), "utf8")); } catch {}
 const ovr = Object.entries(overrides).filter(([id, o]) => !id.startsWith("_") && o && typeof o === "object");
 // שיעור שנקבע לו שמע ידנית (גם "בלי שמע") לא מקבל התאמה אוטומטית, וקובץ שהוצמד ידנית לא יוצמד אוטומטית לשיעור אחר
 const report = autoMatch({
-  files, have: [...have.keys()], lessonsPath: path.join(ROOT, "data", "lessons.js"), config,
+  files, have: current, lessonsPath: path.join(ROOT, "data", "lessons.js"), config,
   skip: new Set(ovr.filter(([, o]) => "a" in o).map(([id]) => id)),
   reserved: new Set(ovr.map(([, o]) => o.a).filter(Boolean)),
 });
 // רשימת הקבצים ב-R2, בשביל דף הניהול
 await writeFile(
   path.join(ROOT, "data", "r2-files.json"),
-  JSON.stringify([...have.keys()].filter((k) => /\.(mp3|pdf)$/i.test(k)).sort()) + "\n"
+  JSON.stringify(current.filter((k) => /\.(mp3|pdf)$/i.test(k)).sort()) + "\n"
 );
 for (const [id, o] of ovr) {
   const f = { ...(files[id] || {}) };
