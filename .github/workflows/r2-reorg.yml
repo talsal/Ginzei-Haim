@@ -1,0 +1,40 @@
+name: סידור תיקיות ב-R2 (העתקה בלבד, בלי מחיקה)
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "list = רשימת הקבצים, copy = העתקה לפי data/r2-reorg-plan.json"
+        type: choice
+        options: [list, copy]
+        default: list
+      dry_run:
+        description: "בדיקה בלי העתקה"
+        type: boolean
+        default: true
+  push:
+    branches: [claude/project-thread-ppx3yg]
+    paths: [".github/workflows/r2-reorg.yml", "scripts/r2-reorg.mjs"]
+
+permissions:
+  contents: read
+
+jobs:
+  reorg:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - env:
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+          MODE: ${{ github.event_name == 'push' && 'list' || inputs.mode }}
+          DRY_RUN: ${{ (github.event_name == 'push' || inputs.dry_run) && '1' || '0' }}
+        run: node scripts/r2-reorg.mjs
