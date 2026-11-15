@@ -2,13 +2,193 @@
  "_note": "נוצר אוטומטית. linked = שיעורים שקיבלו קבצים לפי שם הקובץ. unmatched = שיעורים מ-60 הימים האחרונים שעוד אין להם שמע.",
  "linked": [
   {
-   "id": "dNy-Q5Crl40",
-   "date": "2026-11-02",
-   "title": "הרב יואל חקון  - תפילה עם נקודות הכסף - שיעור 039 - יוצר - ציצית.",
-   "place": "יד בנימין",
-   "a": "New Folder/JH-26-11-02 Yotser - Y.mp3",
+   "id": "rXCG5k74Qh0",
+   "date": "2024-02-05",
+   "title": "סדר כוונות התפילה - שיעור 02 - כריעות וזקיפות בסידור - מודים.",
+   "place": "מבוא חורון",
+   "a": "Mevo 76/Sidur/JH-24-02-05 Kuz-Sidur-Modim-MH.mp3",
    "p": [
-    "Tfila - Start/JH-26-10-18 Hakdama Tfila.pdf"
+    "Mevo 76/Sidur/JH-24-01-29 Kuz.pdf"
+   ]
+  },
+  {
+   "id": "6ZD_667Fb6E",
+   "date": "2025-11-24",
+   "title": "הרב יואל חקון  - תפילה עם נקודות הכסף - שיעור 020 - זמירות - אל נקמות.",
+   "place": "יד בנימין",
+   "a": "Tfila - Start/JH-25-11-24 Zmirot - El Nekamot-Y.mp3",
+   "p": [
+    "Tfila - Start/JH-25-11-24 Zmirot - Hodu.pdf"
+   ]
+  },
+  {
+   "id": "78p55XE6b_E",
+   "date": "2026-02-23",
+   "title": "הקדמות תשפ״ה - שיעור 01 - הקדמות כלליות לכוונות.",
+   "place": "הר חומה",
+   "a": "Har Homa 86/Hakdamot/JH-26-02-23 Tfila - Hakdamot - HH.mp3",
+   "p": [
+    "Har Homa 86/Hakdamot/JH-26-02-11 Hakdama Tfila.pdf"
+   ]
+  },
+  {
+   "id": "7xhqcYsGu6I",
+   "date": "2026-03-16",
+   "title": "הר חומה תשפ״ו - פסח - הגדה - שיעור 02 - הקדמה.",
+   "place": "הר חומה",
+   "a": "Har Homa 86/Hagim/Pessah/JH-26-03-16 Pessah - Hakdamot - HH.mp3",
+   "p": [
+    "Har Homa 86/Hagim/Pessah/JH-26-03-09 Hagada Short.pdf"
+   ]
+  },
+  {
+   "id": "-gN8VbwxpiA",
+   "date": "2026-04-20",
+   "title": "הר חומה תשפ״ו - הקדמות - שיעור 03 - ערכים.",
+   "place": "הר חומה",
+   "a": "Har Homa 86/Hakdamot/JH-26-04-20 Tfila - Hakdamot Arachim - HH.mp3",
+   "p": [
+    "Har Homa 86/Hakdamot/JH-26-02-11 Hakdama Tfila.pdf"
+   ]
+  },
+  {
+   "id": "MMzNqeAMkXw",
+   "date": "2026-04-27",
+   "title": "הר חומה תשפ״ו - הקדמות - שיעור 04 - ערכים.",
+   "place": "הר חומה",
+   "a": "Har Homa 86/Hakdamot/JH-26-04-27 Tfila - Hakdamot Arachim - HH.mp3",
+   "p": [
+    "Har Homa 86/Hakdamot/JH-26-02-11 Hakdama Tfila.pdf"
+   ]
+  },
+  {
+   "id": "96byGACDvlM",
+   "date": "2026-05-04",
+   "title": "הר חומה תשפ״ו - הקדמות - שיעור 05 - ששת אלפי שני.",
+   "place": "הר חומה",
+   "a": "Har Homa 86/Hakdamot/JH-26-05-04 Tfila - Hakdamot Berurim - HH.mp3",
+   "p": [
+    "Har Homa 86/Hakdamot/JH-26-02-11 Hakdama Tfila.pdf"
+   ]
+  },
+  {
+   "id": "DeK5R-3NewI",
+   "date": "2026-07-06",
+   "title": "מטבע ברכה תשפ״ו - שיעור 01 - הקדמות.",
+   "place": "הר חומה",
+   "a": "Har Homa 86/Matbea Bracha/JH-26-07-06 Matbea - Hakdamot - HH.mp3",
+   "p": [
+    "Har Homa 86/Matbea Bracha/JH-26-07-06 Matbea.pdf"
+   ]
+  },
+  {
+   "id": "KnTX3-_sHEo",
+   "date": "2026-07-13",
+   "title": "מטבע ברכה תשפ״ו - שיעור 02 - הקדמות.",
+   "place": "הר חומה",
+   "a": "Har Homa 86/Matbea Bracha/JH-26-07-13 Matbea - Hakdamot - HH.mp3",
+   "p": [
+    "Har Homa 86/Matbea Bracha/JH-26-07-06 Matbea.pdf"
+   ]
+  },
+  {
+   "id": "8a4nA4_HJog",
+   "date": "2026-08-11",
+   "title": "תפילה תשפ״ה - שיעור 102 - ק״ש בסידור - אחד - חילוף - כניסה בצלמים.",
+   "place": "בית וגן",
+   "a": "BVG Folder/Tfila 85/JH-26-08-11 Tfila - Kash - Ehad - Hiluf - Tslamim - BVG.mp3",
+   "p": [
+    "BVG Folder/Tfila 85/JH-26-07-26 Hiluf.pdf"
+   ]
+  },
+  {
+   "id": "EWX3LcKpTi8",
+   "date": "2026-10-12",
+   "title": "מטבע ברכה תשפ״ו - שיעור 08 - כוונות - ברוך.",
+   "place": "הר חומה",
+   "a": "Har Homa 86/Matbea Bracha/JH-26-10-12 Matbea - Baruch - HH.mp3",
+   "p": [
+    "Har Homa 86/Matbea Bracha/JH-26-07-06 Matbea.pdf"
+   ]
+  },
+  {
+   "id": "KbJEVQTM-7g",
+   "date": "2026-10-19",
+   "title": "הרב יואל חקון  - תפילה עם נקודות הכסף - שיעור 037 - מרכבה - יוצר.",
+   "place": "יד בנימין",
+   "a": "Tfila - Start/JH-26-10-19 Merkava - Yotser -Y.mp3",
+   "p": [
+    "Tfila - Start/JH-26-11-09 Tfila-Nekudot Hakessef.pdf"
+   ]
+  },
+  {
+   "id": "PWLiwn-mVrU",
+   "date": "2026-10-19",
+   "title": "מטבע ברכה תשפ״ו - שיעור 09 - כוונות - ברוך.",
+   "place": "הר חומה",
+   "a": "Har Homa 86/Matbea Bracha/JH-26-10-19 Matbea - Baruch - HH.mp3",
+   "p": [
+    "Har Homa 86/Matbea Bracha/JH-26-09-06 Matbea.pdf"
+   ]
+  },
+  {
+   "id": "pQYs7yxCRLY",
+   "date": "2026-10-19",
+   "title": "סדר כוונות התפילה - שיעור 71 - היכלות - חזרה.",
+   "place": "מבוא חורון",
+   "a": "Mevo 76/Sidur/JH-26-10-19 Tfila - Hechalot - Hazara - MH.mp3",
+   "p": [
+    "Mevo 76/Sidur/JH-26-05-25 Tfila-Beahava.pdf"
+   ]
+  },
+  {
+   "id": "4vjewFjpVbQ",
+   "date": "2026-10-20",
+   "title": "תפילה תשפ״ז - שיעור 003 - הקדמה כללית - שורשי המוחין שבכתר.",
+   "place": "ישיבה",
+   "a": "Yeshiva 80 - N/Tfila 86/JH-26-10-20 Tfila From Start-YN.mp3",
+   "p": [
+    "Yeshiva 80 - N/Tfila 86/JH-26-01-27 Hakdama Tfila.pdf"
+   ]
+  },
+  {
+   "id": "CSgdSh5_EYE",
+   "date": "2026-10-20",
+   "title": "תפילה תשפ״ה - שיעור 117 - ק״ש בסידור - אחד - כריעות וזקיפות - מבנה התפילה.",
+   "place": "בית וגן",
+   "a": "BVG Folder/Tfila 85/JH-26-10-20 Tfila - Kuz - Mivne Hatefila-BVG.mp3",
+   "p": [
+    "BVG Folder/Tfila 85/JH-26-11-02 Kuz.pdf"
+   ]
+  },
+  {
+   "id": "uuKeyNXM8WE",
+   "date": "2026-10-26",
+   "title": "מטבע ברכה תשפ״ו - שיעור 10 - כוונות - ברוך.",
+   "place": "הר חומה",
+   "a": "Har Homa 86/Matbea Bracha/JH-26-10-26 Matbea - Baruch- HH.mp3",
+   "p": [
+    "Har Homa 86/Matbea Bracha/JH-26-09-06 Matbea.pdf"
+   ]
+  },
+  {
+   "id": "8U5k-RyPgME",
+   "date": "2026-10-27",
+   "title": "תפילה תשפ״ה - שיעור 120 - ק״ש בסידור - אחד - כריעות וזקיפות - סידור.",
+   "place": "בית וגן",
+   "a": "BVG Folder/Tfila 85/JH-26-10-27 Tfila - Kuz - Sidur - BVG.mp3",
+   "p": [
+    "BVG Folder/Tfila 85/JH-26-11-02 Kuz.pdf"
+   ]
+  },
+  {
+   "id": "58nUfG6Hiw0",
+   "date": "2026-10-28",
+   "title": "תפילה תשפ״ה - שיעור 121 - ק״ש בסידור - אחד - כריעות וזקיפות - סידור.",
+   "place": "בית וגן",
+   "a": "BVG Folder/Tfila 85/JH-26-10-28 Tfila - Kuz - Sidur - BVG.mp3",
+   "p": [
+    "BVG Folder/Tfila 85/JH-26-11-02 Kuz.pdf"
    ]
   },
   {
@@ -16,7 +196,17 @@
    "date": "2026-11-04",
    "title": "תפילה תשפ״ה - שיעור 124 - ק״ש בסידור - אחד - כריעות וזקיפות - סידור - ברוך - חיבור.",
    "place": "בית וגן",
-   "a": "BVG Folder/Tfila 85/JH-26-11-04 Test - BVG.mp3",
+   "a": "BVG Folder/Tfila 85/JH-26-11-04 Tfila - Kuz - Sidur - Hibur - BVG.mp3",
+   "p": [
+    "BVG Folder/Tfila 85/JH-26-11-02 Kuz.pdf"
+   ]
+  },
+  {
+   "id": "oXGmGpUgLAA",
+   "date": "2026-11-15",
+   "title": "תפילה תשפ״ה - שיעור 128 - ק״ש בסידור - אחד - כריעות וזקיפות - סידור - ברכת מודים.",
+   "place": "בית וגן",
+   "a": "BVG Folder/Tfila 85/JH-26-11-15 Tfila - Kuz - Modim - BVG.mp3",
    "p": [
     "BVG Folder/Tfila 85/JH-26-11-02 Kuz.pdf"
    ]
@@ -24,17 +214,10 @@
  ],
  "unmatched": [
   {
-   "id": "58nUfG6Hiw0",
-   "date": "2026-10-28",
-   "title": "תפילה תשפ״ה - שיעור 121 - ק״ש בסידור - אחד - כריעות וזקיפות - סידור.",
-   "place": "בית וגן",
-   "candidates": []
-  },
-  {
-   "id": "8U5k-RyPgME",
-   "date": "2026-10-27",
-   "title": "תפילה תשפ״ה - שיעור 120 - ק״ש בסידור - אחד - כריעות וזקיפות - סידור.",
-   "place": "בית וגן",
+   "id": "dNy-Q5Crl40",
+   "date": "2026-11-02",
+   "title": "הרב יואל חקון  - תפילה עם נקודות הכסף - שיעור 039 - יוצר - ציצית.",
+   "place": "יד בנימין",
    "candidates": []
   },
   {
@@ -42,62 +225,6 @@
    "date": "2026-10-26",
    "title": "הרב יואל חקון  - תפילה עם נקודות הכסף - שיעור 038 - יוצר - היכלות.",
    "place": "יד בנימין",
-   "candidates": []
-  },
-  {
-   "id": "uuKeyNXM8WE",
-   "date": "2026-10-26",
-   "title": "מטבע ברכה תשפ״ו - שיעור 10 - כוונות - ברוך.",
-   "place": "הר חומה",
-   "candidates": []
-  },
-  {
-   "id": "4vjewFjpVbQ",
-   "date": "2026-10-20",
-   "title": "תפילה תשפ״ז - שיעור 003 - הקדמה כללית - שורשי המוחין שבכתר.",
-   "place": "ישיבה",
-   "candidates": []
-  },
-  {
-   "id": "CSgdSh5_EYE",
-   "date": "2026-10-20",
-   "title": "תפילה תשפ״ה - שיעור 117 - ק״ש בסידור - אחד - כריעות וזקיפות - מבנה התפילה.",
-   "place": "בית וגן",
-   "candidates": []
-  },
-  {
-   "id": "KbJEVQTM-7g",
-   "date": "2026-10-19",
-   "title": "הרב יואל חקון  - תפילה עם נקודות הכסף - שיעור 037 - מרכבה - יוצר.",
-   "place": "יד בנימין",
-   "candidates": []
-  },
-  {
-   "id": "PWLiwn-mVrU",
-   "date": "2026-10-19",
-   "title": "מטבע ברכה תשפ״ו - שיעור 09 - כוונות - ברוך.",
-   "place": "הר חומה",
-   "candidates": []
-  },
-  {
-   "id": "pQYs7yxCRLY",
-   "date": "2026-10-19",
-   "title": "סדר כוונות התפילה - שיעור 71 - היכלות - חזרה.",
-   "place": "מבוא חורון",
-   "candidates": []
-  },
-  {
-   "id": "EWX3LcKpTi8",
-   "date": "2026-10-12",
-   "title": "מטבע ברכה תשפ״ו - שיעור 08 - כוונות - ברוך.",
-   "place": "הר חומה",
-   "candidates": []
-  },
-  {
-   "id": "NAYr_h6p8p0",
-   "date": "2026-09-16",
-   "title": "כיפור תשפ״ז - שיעור 02 - סדר כוונות יום כיפור בקיצור - זכרנו בסידור.",
-   "place": "בית וגן",
    "candidates": []
   }
  ]
