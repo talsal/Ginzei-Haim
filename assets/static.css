@@ -1,0 +1,49 @@
+/* עיצוב הדפים הסטטיים (סדרות ושיעורים) שנבנים ע"י scripts/build-pages.mjs */
+:root{
+  --text:#1a1c22; --muted:#465066; --accent:#1f3a93; --card:rgba(255,255,255,.92); --border:#cdd8ea; --btn:#e8eef7;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --text:#f1f1f3; --muted:#9aa0ab; --accent:#8fb0ff; --card:rgba(20,22,28,.94); --border:#262a33; --btn:#20242e;
+  }
+  :root:not([data-theme="light"]) body::before{
+    background-image:linear-gradient(rgba(9,14,30,.8),rgba(9,14,30,.8)), url("pattern.jpg?v=3"), url("paper.jpg?v=3");
+    background-size:auto, 107px 190px, cover;
+    background-repeat:no-repeat, repeat, no-repeat;
+  }
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; color:var(--text); background:#dce8f8; line-height:1.6;
+  font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+body::before{
+  content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background-image:url("pattern.jpg?v=3"), url("paper.jpg?v=3");
+  background-size:107px 190px, cover; background-repeat:repeat, no-repeat; background-position:0 0, center;
+  background-blend-mode:multiply, normal;
+}
+a{color:var(--accent);}
+header.top{text-align:center; padding:20px 16px 4px;}
+header.top .home img{width:min(360px, 80vw); height:auto;}
+header.top .sub{margin:4px 0 0; font-size:1.1rem; font-weight:600;}
+main{max-width:900px; margin:12px auto; padding:20px; background:var(--card); border:1px solid var(--border); border-radius:14px;}
+@media (max-width:640px){ main{margin:8px 16px; padding:16px;} }
+h1{font-size:1.5rem; line-height:1.35; margin:8px 0;}
+h2{font-size:1.2rem; margin:24px 0 8px;}
+.meta{color:var(--muted); font-size:.9rem;}
+.crumbs{font-size:.85rem; color:var(--muted);}
+.crumbs a{color:var(--muted);}
+.video{position:relative; aspect-ratio:16/9; margin:12px 0; border-radius:10px; overflow:hidden; background:#000;}
+.video iframe{position:absolute; inset:0; width:100%; height:100%; border:0;}
+.audio-only{font-size:1.2rem; padding:24px; text-align:center; background:var(--btn); border-radius:10px; margin:12px 0;}
+.files{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:12px 0;}
+.files audio{width:100%;}
+.btn{display:inline-block; padding:8px 14px; border-radius:8px; background:var(--btn); border:1px solid var(--border); text-decoration:none; font-weight:600;}
+.btn.primary{background:var(--accent); color:#fff; border-color:transparent;}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .btn.primary{color:#14161c;} }
+ol.lessons, ul.lessons, ul.series{padding-inline-start:24px;}
+ol.lessons li, ul.lessons li, ul.series li{margin:6px 0;}
+.prevnext{display:flex; justify-content:space-between; gap:12px; max-width:900px; margin:0 auto 12px; padding:0 16px; font-size:.9rem;}
+footer{text-align:center; padding:12px 16px 32px; font-size:.9rem;}
+footer .about{max-width:700px; margin:8px auto; color:var(--muted);}
