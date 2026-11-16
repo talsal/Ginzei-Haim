@@ -274,6 +274,14 @@ const prefix = config.stripPrefix || "";
 const clean = t => (prefix && t.startsWith(prefix) ? t.slice(prefix.length) : t).trim() || t;
 for (const v of Object.values(videos)) v.title = clean(v.title);
 for (const p of playlists) p.name = clean(p.name);
+// פלייליסט באותו שם בכמה ערוצים (למשל סדרה שהתחילה בערוץ הישן וממשיכה בערוץ האישי) מוצג כסדרה אחת, עם המזהה של הראשון
+for (let i = playlists.length - 1; i >= 0; i--) {
+  const p = playlists[i];
+  const first = playlists.findIndex(q => q.id !== "more" && q.name === p.name);
+  if (p.id === "more" || first === i) continue;
+  playlists[first].videoIds = [...new Set([...playlists[first].videoIds, ...p.videoIds])];
+  playlists.splice(i, 1);
+}
 
 // ---- מקום ונושא לכל פלייליסט, לפי רשימת המקומות ב-config ----
 const places = config.places || [];
