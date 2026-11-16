@@ -1092,8 +1092,11 @@
   </div>
 </div>
 
-<script src="data/lessons.js"></script>
-<script src="data/media.js"></script>
+<script>
+// GitHub Pages שומר קבצים בזיכרון עד 10 דקות. מוסיפים לכתובת את הדקה הנוכחית, כדי ששיעור חדש יופיע מיד אחרי הפרסום.
+(function(){ var v = Math.floor(Date.now() / 60000);
+  document.write('<script src="data/lessons.js?v=' + v + '"><\/script><script src="data/media.js?v=' + v + '"><\/script>'); })();
+</script>
 <script>
 // ---- נתונים ----
 // data/lessons.js נוצר אוטומטית ע"י scripts/sync.mjs (GitHub Action יומי).
