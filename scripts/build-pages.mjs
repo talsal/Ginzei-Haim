@@ -78,7 +78,7 @@ const PERSON = {
   "@type": "Person",
   "@id": SITE + "/#rabbi",
   name: RABBI,
-  alternateName: ["יואל חקון", "הרב יואל חקון שליט\"א", "Joel Hakoune", RABBI_EN, "Rav Yoel Hakoune"],
+  alternateName: ["יואל חקון", "הרב יואל חקון שליט\"א", "שיעורי הרב יואל חקון", "Joel Hakoune", RABBI_EN, "Rav Yoel Hakoune"],
   jobTitle: "רב ומלמד קבלה",
   knowsAbout: ["קבלה", "חכמת הקבלה", "כוונות התפילה"],
 };
@@ -120,7 +120,7 @@ ${ld.map(jsonLd).join("\n")}
 ${body}
 </main>
 <footer>
-  <p><a href="/">${SITE_NAME}</a> · <a href="/lessons/">כל הסדרות והשיעורים</a></p>
+  <p><a href="/">${SITE_NAME}</a> · <a href="/lessons/">כל הסדרות והשיעורים</a> · <a href="/about/">אודות ${RABBI}</a></p>
   <p class="about">${SITE_NAME} (Ginzei Haim) הוא אתר השיעורים של ${RABBI} (${RABBI_EN}): שיעורים בקבלה, בכוונות התפילה, בסעודה ובמועדי השנה, בווידאו, בהקלטות שמע ובדפי מקורות.</p>
 </footer>
 <script data-goatcounter="https://ginzei-haim.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
@@ -284,6 +284,32 @@ ${recent.length ? `<section><h2>שיעורים אחרונים</h2><ul class="les
   return page({ title: `כל הסדרות והשיעורים | ${RABBI} | ${SITE_NAME}`, description: desc, canonical: url, ld: [crumbs.ld], body });
 }
 
+// ---- אודות: דף שעיקר נושאו הרב והאתר, כדי שחיפוש בשם הרב או בשם האתר בעברית יגיע לכאן ----
+function buildAbout(){
+  const url = SITE + "/about/";
+  const total = Object.keys(VIDEOS).length;
+  const crumbs = breadcrumbs([{ name: SITE_NAME, path: "/" }, { name: "אודות", path: "/about/" }]);
+  const cats = (DATA.categories || []).map(c => CAT_LABEL[c.key]).filter(Boolean);
+  const desc = `${SITE_NAME} הוא אתר שיעורי הקבלה של ${RABBI} (${RABBI_EN}): ${total} שיעורים בווידאו, בהקלטות שמע ובדפי מקורות, מסודרים לפי נושאים וקבוצות.`;
+  const ld = [{
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    "@id": url,
+    url,
+    name: `${RABBI} | ${SITE_NAME}`,
+    inLanguage: "he",
+    isPartOf: { "@id": SITE + "/#website" },
+    mainEntity: { ...PERSON, url: SITE + "/" },
+  }, crumbs.ld];
+  const body = `${crumbs.html}
+<h1>${RABBI} ו${SITE_NAME}</h1>
+<p><strong>${SITE_NAME}</strong> (Ginzei Haim) הוא האתר שמרכז את השיעורים של <strong>${RABBI}</strong> (${RABBI_EN}). באתר ${total} שיעורים ב-${PLAYLISTS.length} סדרות: שיעורי קבלה, כוונות התפילה, הסעודה, חגים ומועדי השנה.</p>
+<p>${RABBI} מוסר שיעורים בקבוצות בבית וגן, בהר חומה, ביד בנימין, במבוא חורון ובישיבה. השיעורים זמינים באתר ${SITE_NAME} בווידאו או בהקלטת שמע, ולרבים מהם יש גם קובץ mp3 ודף מקורות (PDF) להורדה. שיעורים חדשים של ${RABBI} מתווספים לאתר אוטומטית.</p>
+${cats.length ? `<h2>נושאי השיעורים</h2><ul>${cats.map(c => `<li>${esc(c)}</li>`).join("")}</ul>` : ""}
+<p><a class="btn primary" href="/">לכל שיעורי ${RABBI} באתר ${SITE_NAME}</a> <a class="btn" href="/lessons/">רשימת כל הסדרות</a></p>`;
+  return page({ title: `${RABBI} | שיעורי קבלה | ${SITE_NAME}`, description: desc, canonical: url, ogType: "profile", ld, body });
+}
+
 function write(rel, html){
   const p = path.join(ROOT, rel);
   fs.mkdirSync(path.dirname(p), { recursive: true });
@@ -291,9 +317,10 @@ function write(rel, html){
 }
 
 // ניקוי דפים ישנים (שיעור שנמחק לא יישאר באתר)
-for(const d of ["lesson", "series", "lessons"]) fs.rmSync(path.join(ROOT, d), { recursive: true, force: true });
+for(const d of ["lesson", "series", "lessons", "about"]) fs.rmSync(path.join(ROOT, d), { recursive: true, force: true });
 
 write("lessons/index.html", buildIndex());
+write("about/index.html", buildAbout());
 for(const p of PLAYLISTS) write(`series/${p.id}/index.html`, buildSeries(p));
 const lessonIds = Object.keys(VIDEOS);
 for(const id of lessonIds) write(`lesson/${id}/index.html`, buildLesson(id));
@@ -303,6 +330,7 @@ const latestOf = (ids) => ids.map(id => VIDEOS[id].published).filter(Boolean).so
 const urls = [
   { loc: SITE + "/", lastmod: latestOf(lessonIds), priority: "1.0" },
   { loc: SITE + "/lessons/", lastmod: latestOf(lessonIds), priority: "0.9" },
+  { loc: SITE + "/about/", lastmod: today, priority: "0.9" },
   ...PLAYLISTS.map(p => ({ loc: SITE + seriesPath(p), lastmod: latestOf(p.ids), priority: "0.8" })),
   ...lessonIds.map(id => ({ loc: SITE + lessonPath(id), lastmod: (VIDEOS[id].published || today).slice(0, 10), priority: "0.6" })),
 ];
