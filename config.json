@@ -2,8 +2,24 @@
   "siteTitle": "גנזי חיים",
   "siteSubtitle": "שיעורי הרב יואל חקון",
   "siteDescription": "כל השיעורים של הרב יואל מיוטיוב, מסודרים לפי נושאים, עם חיפוש ונגן.",
-  "channelHandle": "@hachiem.vehashalom",
-  "channelId": "UCjCwvHzEeN0dGO4eaaQi6KQ",
+  "channels": [
+    {
+      "_comment": "הערוץ הישן (משותף לכמה רבנים): רק סרטונים שבכותרת או בתיאור שלהם מופיע \"יואל חקון\", או שנמצאים באחד הפלייליסטים ב-filter.playlistIds.",
+      "handle": "@hachiem.vehashalom",
+      "id": "UCjCwvHzEeN0dGO4eaaQi6KQ",
+      "filter": {
+        "_comment": "משאירים רק שיעורים שהכותרת או התיאור שלהם מכילים אחת מהמילים, או שנמצאים באחד הפלייליסטים. ריק = הכול.",
+        "keywords": [
+          "יואל חקון"
+        ],
+        "playlistIds": []
+      }
+    },
+    {
+      "_comment": "הערוץ האישי של הרב: כל הסרטונים, בלי סינון.",
+      "handle": "@ginzei-haim"
+    }
+  ],
   "minDurationSeconds": 0,
   "excludePlaylistIds": [],
   "categories": [
@@ -55,13 +71,6 @@
       "keywords": []
     }
   ],
-  "filter": {
-    "_comment": "משאירים רק שיעורים שהכותרת או התיאור שלהם מכילים אחת מהמילים, או שנמצאים באחד הפלייליסטים. ריק = הכול.",
-    "keywords": [
-      "יואל חקון"
-    ],
-    "playlistIds": []
-  },
   "stripPrefix": "הרב יואל חקון - ",
   "places": [
     "בית וגן אוהל משה",

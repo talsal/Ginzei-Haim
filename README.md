@@ -6,12 +6,12 @@
 ## איך זה עובד
 - `index.html` הוא האתר עצמו (קובץ אחד, בלי תלויות).
 - `data/lessons.js` מכיל את רשימת השיעורים. **הוא נוצר אוטומטית**, אין לערוך אותו ידנית.
-- `scripts/sync.mjs` מושך מיוטיוב את כל הפלייליסטים והסרטונים של הערוץ וכותב את `data/lessons.js`.
+- `scripts/sync.mjs` מושך מיוטיוב את כל הפלייליסטים והסרטונים של הערוצים שב-`config.json` (`channels`) וכותב את `data/lessons.js`.
 - `.github/workflows/sync.yml` מריץ את הסנכרון כל יום, שומר את השינויים ומפרסם את האתר ל-GitHub Pages.
   שיעור חדש ביוטיוב מופיע באתר תוך יום לכל היותר.
 
 ## הגדרה חד-פעמית
-1. ב-`config.json` לשים את כתובת הערוץ (`channelHandle`, למשל `@ravyoel`).
+1. ב-`config.json`, ברשימה `channels`, לשים את כתובות הערוצים (`handle`, למשל `@ravyoel`). לערוץ שיש בו גם רבנים אחרים מוסיפים `filter` עם מילים מהכותרת.
 2. ליצור מפתח YouTube Data API v3:
    [Google Cloud Console](https://console.cloud.google.com/) → פרויקט חדש → APIs & Services → Library →
    "YouTube Data API v3" → Enable → Credentials → Create credentials → API key.
