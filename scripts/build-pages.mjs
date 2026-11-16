@@ -103,10 +103,15 @@ ${robots ? `<meta name="robots" content="${robots}">\n` : ""}<link rel="canonica
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/icon-32.png">
 <link rel="apple-touch-icon" href="/assets/icon-180.png">
-<link rel="stylesheet" href="/assets/static.css?v=1">
+<link rel="stylesheet" href="/assets/static.css?v=2">
 ${ld.map(jsonLd).join("\n")}
 </head>
 <body>
+<nav class="screen-nav" aria-label="ניווט בין מסכים">
+  <button type="button" class="sn-btn" onclick="history.back()" title="חזרה למסך הקודם"><span class="sn-arrow" aria-hidden="true">→</span> הקודם</button>
+  <a class="sn-btn sn-home" href="/" title="לדף הבית"><span aria-hidden="true">🏠</span> דף הבית</a>
+  <button type="button" class="sn-btn" onclick="history.forward()" title="קדימה למסך הבא">הבא <span class="sn-arrow" aria-hidden="true">←</span></button>
+</nav>
 <header class="top">
   <a class="home" href="/"><img src="/assets/title.webp?v=3" alt="${SITE_NAME}" width="900" height="224"></a>
   <p class="sub">שיעורי קבלה של ${RABBI}</p>
@@ -118,6 +123,7 @@ ${body}
   <p><a href="/">${SITE_NAME}</a> · <a href="/lessons/">כל הסדרות והשיעורים</a></p>
   <p class="about">${SITE_NAME} (Ginzei Haim) הוא אתר השיעורים של ${RABBI} (${RABBI_EN}): שיעורים בקבלה, בכוונות התפילה, בסעודה ובמועדי השנה, בווידאו, בהקלטות שמע ובדפי מקורות.</p>
 </footer>
+<script data-goatcounter="https://ginzei-haim.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </body>
 </html>
 `;
