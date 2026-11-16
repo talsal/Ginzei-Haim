@@ -25,8 +25,9 @@ concurrency:
 jobs:
   sync-and-deploy:
     runs-on: ubuntu-latest
+    # הפעלה ידנית מענף אחר (לבדיקה) מסנכרנת ושומרת לענף ההוא בלבד, בלי לפרסם את האתר
     environment:
-      name: github-pages
+      name: ${{ github.ref == 'refs/heads/main' && 'github-pages' || '' }}
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
@@ -73,7 +74,7 @@ jobs:
             git commit -m "עדכון שיעורים אוטומטי"
             # תהליך אחר (למשל העתקת הקבצים ל-R2) עשוי לדחוף ל-main באותו זמן: מושכים ומנסים שוב
             for i in 1 2 3 4; do
-              git pull --rebase origin main && git push && break
+              git pull --rebase origin "${GITHUB_REF_NAME}" && git push && break
               [ "$i" = 4 ] && exit 1
               sleep $((i * 5))
             done
@@ -83,17 +84,17 @@ jobs:
 
       # דפים סטטיים לכל סדרה ושיעור + מפת אתר, כדי שגוגל יוכל לאנדקס את השיעורים (לא נשמרים בריפו)
       - name: בניית דפים לגוגל
-        if: steps.sync.outputs.skip != 'true' || steps.media.outputs.changed == 'true'
+        if: github.ref == 'refs/heads/main' && (steps.sync.outputs.skip != 'true' || steps.media.outputs.changed == 'true')
         run: node scripts/build-pages.mjs
 
-      - if: steps.sync.outputs.skip != 'true' || steps.media.outputs.changed == 'true'
+      - if: github.ref == 'refs/heads/main' && (steps.sync.outputs.skip != 'true' || steps.media.outputs.changed == 'true')
         uses: actions/configure-pages@v5
 
-      - if: steps.sync.outputs.skip != 'true' || steps.media.outputs.changed == 'true'
+      - if: github.ref == 'refs/heads/main' && (steps.sync.outputs.skip != 'true' || steps.media.outputs.changed == 'true')
         uses: actions/upload-pages-artifact@v3
         with:
           path: .
 
-      - if: steps.sync.outputs.skip != 'true' || steps.media.outputs.changed == 'true'
+      - if: github.ref == 'refs/heads/main' && (steps.sync.outputs.skip != 'true' || steps.media.outputs.changed == 'true')
         id: deployment
         uses: actions/deploy-pages@v4

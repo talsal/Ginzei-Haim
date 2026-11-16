@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// סנכרון השיעורים מערוץ היוטיוב אל data/lessons.js
+// סנכרון השיעורים מערוצי היוטיוב (config.channels) אל data/lessons.js
 // שימוש: YT_API_KEY=... node scripts/sync.mjs
 // אין תלויות חיצוניות (Node 18 ומעלה).
 
@@ -78,15 +78,21 @@ function signature(v) {
     v.snippet.liveBroadcastContent, v.contentDetails && v.contentDetails.duration, v.snippet.title].join("|");
 }
 
-// ---- 1. הערוץ ----
-const channelParams = config.channelId
-  ? { id: config.channelId }
-  : { forHandle: config.channelHandle };
-const ch = await api("channels", { part: "snippet,contentDetails", ...channelParams });
-if (!ch.items || !ch.items.length) throw new Error("הערוץ לא נמצא: " + JSON.stringify(channelParams));
-const channel = ch.items[0];
-const uploadsId = channel.contentDetails.relatedPlaylists.uploads;
-console.log("ערוץ:", channel.snippet.title);
+// ---- 1. הערוצים ----
+// config.channels: רשימת ערוצים, לכל אחד handle או id, ו-filter אופציונלי (בלי filter = כל הסרטונים בערוץ הם שיעורי הרב).
+// תאימות לאחור: אם אין רשימה, משתמשים בשדות הישנים channelHandle/channelId/filter.
+const channelDefs = config.channels && config.channels.length
+  ? config.channels
+  : [{ handle: config.channelHandle, id: config.channelId, filter: config.filter }];
+const channels = [];
+for (const def of channelDefs) {
+  const params = def.id ? { id: def.id } : { forHandle: def.handle };
+  const ch = await api("channels", { part: "snippet,contentDetails", ...params });
+  if (!ch.items || !ch.items.length) throw new Error("הערוץ לא נמצא: " + JSON.stringify(params));
+  const c = ch.items[0];
+  channels.push({ def, channel: c, uploadsId: c.contentDetails.relatedPlaylists.uploads });
+  console.log("ערוץ:", c.snippet.title, c.id);
+}
 
 async function setOutput(k, v) {
   if (process.env.GITHUB_OUTPUT) await appendFile(process.env.GITHUB_OUTPUT, `${k}=${v}\n`);
@@ -97,10 +103,15 @@ if (QUICK) {
   let seen = null;
   try { seen = new Set(JSON.parse(await readFile(SEEN_PATH, "utf8"))); } catch {}
   if (seen) {
-    const first = await api("playlistItems", { part: "contentDetails", playlistId: uploadsId, maxResults: 50 });
+    // 50 הסרטונים האחרונים של כל ערוץ (יחידת מכסה אחת לכל ערוץ)
+    const recent = [];
+    for (const c of channels) {
+      const first = await api("playlistItems", { part: "contentDetails", playlistId: c.uploadsId, maxResults: 50 });
+      recent.push(...(first.items || []).map(i => i.contentDetails && i.contentDetails.videoId));
+    }
     let pendingPrev = {};
     try { pendingPrev = JSON.parse(await readFile(PENDING_PATH, "utf8")); } catch {}
-    const unseen = (first.items || []).map(i => i.contentDetails && i.contentDetails.videoId).filter(id => id && !seen.has(id));
+    const unseen = [...new Set(recent)].filter(id => id && !seen.has(id));
     // סרטון שכבר באתר כ"לא סופי": בודקים אם מצבו השתנה (יחידת מכסה אחת לכל 50)
     const waiting = unseen.filter(id => id in pendingPrev);
     const fresh = unseen.filter(id => !(id in pendingPrev));
@@ -125,8 +136,12 @@ if (QUICK) {
 
 // ---- 2. הפלייליסטים ----
 const exclude = new Set(config.excludePlaylistIds || []);
-const rawPlaylists = (await paged("playlists", { part: "snippet,contentDetails", channelId: channel.id }))
-  .filter(p => !exclude.has(p.id));
+const rawPlaylists = [];
+for (const c of channels) {
+  c.playlists = (await paged("playlists", { part: "snippet,contentDetails", channelId: c.channel.id }))
+    .filter(p => !exclude.has(p.id) && !rawPlaylists.some(q => q.id === p.id));
+  rawPlaylists.push(...c.playlists);
+}
 console.log("פלייליסטים:", rawPlaylists.length);
 
 async function playlistVideoIds(playlistId) {
@@ -134,9 +149,13 @@ async function playlistVideoIds(playlistId) {
   return items.map(i => i.contentDetails && i.contentDetails.videoId).filter(Boolean);
 }
 
-const uploadIds = await playlistVideoIds(uploadsId);
+const uploadIds = [];
 const playlistIds = {};
-for (const p of rawPlaylists) playlistIds[p.id] = await playlistVideoIds(p.id);
+for (const c of channels) {
+  c.uploadIds = await playlistVideoIds(c.uploadsId);
+  uploadIds.push(...c.uploadIds);
+  for (const p of c.playlists) playlistIds[p.id] = await playlistVideoIds(p.id);
+}
 
 // ---- 3. פרטי הסרטונים ----
 const allIds = [...new Set([...uploadIds, ...Object.values(playlistIds).flat()])];
@@ -174,13 +193,23 @@ for (let i = 0; i < allIds.length; i += 50) {
   }
 }
 // ---- סינון: רק שיעורי הרב ----
-const f = config.filter || {};
-const kws = (f.keywords || []).filter(Boolean);
-const keepIds = new Set((f.playlistIds || []).flatMap(id => playlistIds[id] || []));
-if (kws.length || keepIds.size) {
+// סרטון שמופיע בערוץ בלי סינון (הערוץ האישי של הרב) נשאר תמיד. סרטון מערוץ עם סינון נשאר רק אם עבר את הסינון של אותו ערוץ.
+const idsOf = c => [...c.uploadIds, ...c.playlists.flatMap(p => playlistIds[p.id])];
+const keepAlways = new Set();
+const filtered = [];
+for (const c of channels) {
+  const f = c.def.filter || {};
+  const kws = (f.keywords || []).filter(Boolean);
+  const keepIds = new Set((f.playlistIds || []).flatMap(id => playlistIds[id] || []));
+  if (kws.length || keepIds.size) filtered.push({ ids: new Set(idsOf(c)), kws, keepIds });
+  else for (const id of idsOf(c)) keepAlways.add(id);
+}
+if (filtered.length) {
   for (const id of Object.keys(videos)) {
+    if (keepAlways.has(id)) continue;
     const text = videos[id].title + " " + videos[id].description;
-    if (!keepIds.has(id) && !kws.some(k => text.includes(k))) delete videos[id];
+    const ok = filtered.some(g => g.ids.has(id) && (g.keepIds.has(id) || g.kws.some(k => text.includes(k))));
+    if (!ok) delete videos[id];
   }
   console.log("אחרי סינון לפי הרב:", Object.keys(videos).length);
 }
@@ -245,6 +274,14 @@ const prefix = config.stripPrefix || "";
 const clean = t => (prefix && t.startsWith(prefix) ? t.slice(prefix.length) : t).trim() || t;
 for (const v of Object.values(videos)) v.title = clean(v.title);
 for (const p of playlists) p.name = clean(p.name);
+// פלייליסט באותו שם בכמה ערוצים (למשל סדרה שהתחילה בערוץ הישן וממשיכה בערוץ האישי) מוצג כסדרה אחת, עם המזהה של הראשון
+for (let i = playlists.length - 1; i >= 0; i--) {
+  const p = playlists[i];
+  const first = playlists.findIndex(q => q.id !== "more" && q.name === p.name);
+  if (p.id === "more" || first === i) continue;
+  playlists[first].videoIds = [...new Set([...playlists[first].videoIds, ...p.videoIds])];
+  playlists.splice(i, 1);
+}
 
 // ---- מקום ונושא לכל פלייליסט, לפי רשימת המקומות ב-config ----
 const places = config.places || [];
@@ -259,15 +296,17 @@ for (const p of playlists) {
 
 // ---- 6. כתיבה ----
 const sortedVideos = Object.fromEntries(Object.keys(videos).sort().map(id => [id, videos[id]]));
+const channelInfo = ({ channel }) => ({
+  id: channel.id,
+  title: channel.snippet.title,
+  url: channel.snippet.customUrl
+    ? `https://www.youtube.com/${channel.snippet.customUrl}`
+    : `https://www.youtube.com/channel/${channel.id}`,
+});
 const out = {
   generatedAt: new Date().toISOString(),
-  channel: {
-    id: channel.id,
-    title: channel.snippet.title,
-    url: channel.snippet.customUrl
-      ? `https://www.youtube.com/${channel.snippet.customUrl}`
-      : `https://www.youtube.com/channel/${channel.id}`,
-  },
+  channel: channelInfo(channels[0]),
+  ...(channels.length > 1 ? { channels: channels.map(channelInfo) } : {}),
   categories: finalCategories,
   playlists,
   uploads,
