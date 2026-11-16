@@ -69,6 +69,9 @@
     --halo:rgba(226,236,251,.95);
   }
   *{box-sizing:border-box;}
+  /* גודל הטקסט בכל האתר: כל הגדלים מוגדרים ב-rem, ולכן מספיק להגדיל כאן (ברירת המחדל של הדפדפן היא 16px) */
+  html{font-size:118.75%;}
+  @media (max-width:600px){ html{font-size:112.5%;} }
   button, input, select{font-family:inherit;}
   /* מסגרת ברורה למי שמנווט במקלדת */
   :focus-visible{outline:3px solid var(--accent2); outline-offset:2px;}
@@ -696,7 +699,7 @@
     align-items:center;
     padding:14px 18px;
   }
-  .modal-header h3{margin:0;font-size:1rem;}
+  .modal-header h3{margin:0;font-size:1.1rem;}
   .modal-close{
     width:40px;
     height:40px;
@@ -805,11 +808,12 @@
     background:var(--card);
     border:1.5px solid var(--accent2);
     color:var(--accent2);
-    padding:9px 16px;
-    border-radius:10px;
+    padding:10px 20px;
+    min-height:50px;
+    border-radius:12px;
     cursor:pointer;
-    font-size:1.05rem;
-    font-weight:700;
+    font-size:1.1rem;
+    font-weight:800;
     font-family:inherit;
   }
   .nav-btn:hover{background:var(--accent2); color:var(--accent2-contrast);}
@@ -884,6 +888,56 @@
     .recent-section .grid{padding:0;}
     .audio-thumb{font-size:1.6rem;}
   }
+  /* ---- סרגל ניווט קבוע: למסך הקודם / לדף הבית / למסך הבא ---- */
+  .screen-nav{
+    position:sticky; top:0; z-index:60;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:8px max(12px, calc((100% - 1200px) / 2));
+    background:color-mix(in srgb, var(--card) 88%, transparent);
+    -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);
+    box-shadow:0 2px 10px rgba(0,0,0,.12);
+  }
+  .sn-btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    min-height:50px; min-width:120px; padding:8px 20px;
+    border-radius:14px; border:2px solid var(--accent2);
+    background:var(--accent2); color:var(--accent2-contrast);
+    font-size:1.12rem; font-weight:800; cursor:pointer; font-family:inherit;
+    box-shadow:0 2px 6px rgba(0,0,0,.18);
+    transition:transform .12s ease, opacity .15s ease;
+  }
+  .sn-btn .sn-arrow{font-size:1.4em; line-height:1;}
+  .sn-btn:hover:not(:disabled){transform:translateY(-1px);}
+  .sn-btn:disabled{opacity:.35; cursor:default; box-shadow:none;}
+  .sn-btn.sn-home{background:var(--card); color:var(--accent2);}
+  .sn-btn.sn-home[hidden]{display:inline-flex; visibility:hidden;}
+  @media (max-width:600px){
+    .screen-nav{gap:6px; padding:6px 10px;}
+    .sn-btn{min-width:0; flex:1; min-height:48px; padding:6px 8px; font-size:1rem; gap:5px;}
+    .sn-btn .sn-long{display:none;}
+  }
+  /* כפתור חזרה בולט בחלון הנגן */
+  .modal-back{
+    display:inline-flex; align-items:center; gap:8px; flex-shrink:0;
+    min-height:46px; padding:6px 16px; border-radius:12px;
+    border:2px solid var(--accent2); background:var(--accent2); color:var(--accent2-contrast);
+    font-size:1.02rem; font-weight:800; cursor:pointer; font-family:inherit;
+  }
+  .modal-back .sn-arrow{font-size:1.3em; line-height:1;}
+  .modal-header{gap:12px;}
+  .nav-btn, .autoplay-status{white-space:nowrap;}
+  @media (max-width:600px){
+    .modal-nav{gap:6px;}
+    .nav-btn{flex:1; min-width:0; padding:8px 6px; font-size:1rem;}
+    .autoplay-status{flex:none; font-size:.85rem;}
+    .modal-back{padding:6px 12px;}
+    .modal-header{padding:12px 12px;}
+    .modal-footer{padding:12px 12px 16px;}
+  }
+  .modal-header h3{flex:1; min-width:0;}
+  /* צפיות ביוטיוב בכרטיס השיעור */
+  .views{white-space:nowrap;}
   /* תוויות קטנות (קבץ לפי, מיון): כהות ומודגשות לקריאות */
   .groupby > span, .pl-bar label, .sort-bar label{color:var(--text); font-weight:600;}
 </style>
@@ -896,6 +950,12 @@
 </div>
 
 <a class="skip-link" href="#main-content">דלג לתוכן הראשי</a>
+
+<nav class="screen-nav" aria-label="ניווט בין מסכים">
+  <button type="button" id="navBack" class="sn-btn" title="חזרה למסך הקודם"><span class="sn-arrow" aria-hidden="true">→</span> <span><span class="sn-long">למסך </span>הקודם</span></button>
+  <button type="button" id="navHome" class="sn-btn sn-home" title="לדף הבית"><span aria-hidden="true">🏠</span> דף הבית</button>
+  <button type="button" id="navFwd" class="sn-btn" title="קדימה למסך הבא"><span><span class="sn-long">למסך </span>הבא</span> <span class="sn-arrow" aria-hidden="true">←</span></button>
+</nav>
 
 <header>
   <button id="themeToggle" class="theme-toggle" title="החלף מצב תצוגה"></button>
@@ -991,13 +1051,14 @@
 
 <footer>
   <p class="about">גנזי חיים (Ginzei Haim) הוא אתר השיעורים של הרב יואל חקון (Rabbi Joel Hakoune): שיעורים בקבלה, בכוונות התפילה, בסעודה ובמועדי השנה. <a href="lessons/">רשימת כל הסדרות והשיעורים</a></p>
-  <div class="credit"><span id="updatedLine" class="updated-line"></span></div>
+  <div class="credit"><span id="updatedLine" class="updated-line"></span> <span id="visitsLine" class="updated-line"></span></div>
   <div class="credit">פותח ע"י טל סלמן · <a href="mailto:tal.salman@gmail.com">tal.salman@gmail.com</a></div>
 </footer>
 
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-header">
+      <button type="button" class="modal-back" id="modalBack" title="סגירת הנגן וחזרה למסך הקודם"><span class="sn-arrow" aria-hidden="true">→</span> חזרה</button>
       <h3 id="modalTitle"></h3>
       <button class="modal-close" id="modalClose" aria-label="סגור">&times;</button>
     </div>
@@ -1006,9 +1067,9 @@
     </div>
     <div class="modal-footer">
       <div class="modal-nav">
-        <button id="prevBtn" class="nav-btn"><span aria-hidden="true">⏭</span> הקודם</button>
+        <button id="prevBtn" class="nav-btn" title="השיעור הקודם ברשימה"><span aria-hidden="true">⏭</span> שיעור קודם</button>
         <span id="autoplayStatus" class="autoplay-status" aria-live="polite"></span>
-        <button id="nextBtn" class="nav-btn">הבא <span aria-hidden="true">⏮</span></button>
+        <button id="nextBtn" class="nav-btn" title="השיעור הבא ברשימה">שיעור הבא <span aria-hidden="true">⏮</span></button>
       </div>
       <div class="media-row" id="mediaRow" hidden>
         <audio id="mediaAudio" controls preload="none"></audio>
@@ -1115,8 +1176,30 @@ function buildShareURL(){
   const qs = params.toString();
   return window.location.pathname + (qs ? "?" + qs : "");
 }
-function pushPlaylistURL(){ history.pushState(null, "", buildShareURL()); }
-function replaceSongURL(){ history.replaceState(null, "", buildShareURL()); }
+// ---- היסטוריית מסכים, עבור כפתורי "המסך הקודם" / "המסך הבא" ----
+// כל מסך באתר הוא רשומה בהיסטוריה של הדפדפן. שומרים את מספר הרשומה (i) ואת המספר הגבוה ביותר (navMax),
+// כדי לדעת אם יש לאן לחזור ואם יש לאן להתקדם. m = רשומה שנפתחה בשביל חלון הנגן.
+const NAV_MAX_KEY = "ginzei-nav-max";
+const histState = () => (history.state && typeof history.state.i === "number") ? history.state : null;
+let navIdx = histState() ? histState().i : 0;
+let navMax = navIdx;
+try{ if(histState()) navMax = Math.max(navIdx, Number(sessionStorage.getItem(NAV_MAX_KEY)) || 0); } catch(e){}
+if(!histState()) history.replaceState({ i: 0 }, "");
+function saveNavMax(){ try{ sessionStorage.setItem(NAV_MAX_KEY, String(navMax)); } catch(e){} }
+saveNavMax();
+function pushPlaylistURL(modal){
+  navIdx++; navMax = navIdx; saveNavMax();
+  history.pushState(modal ? { i: navIdx, m: 1 } : { i: navIdx }, "", buildShareURL());
+  updateScreenNav();
+}
+function replaceSongURL(){ history.replaceState(histState() || { i: navIdx }, "", buildShareURL()); }
+function updateScreenNav(){
+  const back = document.getElementById("navBack"), fwd = document.getElementById("navFwd"), home = document.getElementById("navHome");
+  if(!back) return;
+  back.disabled = navIdx <= 0;
+  fwd.disabled = navIdx >= navMax;
+  home.hidden = homeView && !isSearching();
+}
 
 function listFor(playlistId){
   if(playlistId === FAVORITES_ID) return getFavoriteSongs();
@@ -1143,6 +1226,7 @@ function selectPlaylistContaining(videoId){
   }
   return null;
 }
+let restoringURL = false;
 function applyStateFromURL(){
   const params = new URLSearchParams(window.location.search);
   const playlistParam = params.get("playlist");
@@ -1169,9 +1253,10 @@ function applyStateFromURL(){
       if(found){ songs = found.songs; idx = found.idx; }
       else { songs = [lessonOf(lessonParam)]; idx = 0; }
     }
-    openModal(songs[idx], idx, songs);
+    restoringURL = true;
+    try{ openModal(songs[idx], idx, songs); } finally { restoringURL = false; }
   } else if(overlay.classList.contains("open")){
-    closeModal();
+    closeModal(true);
   }
 }
 
@@ -1400,6 +1485,7 @@ function isNew(song){
   if(!song.published) return false;
   return (Date.now() - new Date(song.published).getTime()) < NEW_DAYS * 86400000;
 }
+function formatViews(n){ return Number(n).toLocaleString("he-IL"); }
 function formatDate(iso){
   if(!iso) return "";
   const [y, m, d] = iso.split("-");
@@ -1439,7 +1525,8 @@ function songCard(song, idx, songs){
     if(e.target !== card) return;
     if(e.key === "Enter" || e.key === " "){ e.preventDefault(); openModal(song, idx, songs); }
   };
-  const sub = [song.playlistName, formatDate(song.published)].filter(Boolean).map(escapeHtml).join(" · ");
+  const sub = [song.playlistName, formatDate(song.published)].filter(Boolean).map(escapeHtml)
+    .concat(song.views ? [`<span class="views" title="צפיות ביוטיוב"><span aria-hidden="true">👁</span> ${formatViews(song.views)} צפיות</span>`] : []).join(" · ");
   card.innerHTML = `
     <div class="thumb-wrap">
       ${song.audioOnly ? '<div class="audio-thumb" aria-hidden="true">🎧<span>שמע בלבד</span></div>' : `<img loading="lazy" src="https://i.ytimg.com/vi/${song.videoId}/hqdefault.jpg" alt="">`}
@@ -1517,6 +1604,7 @@ function renderGrid(){
 
 function renderAll(){
   renderFavRow(); renderContinueRow(); renderCategories(); renderTabs(); renderRecent(); renderGrid();
+  updateScreenNav();
 }
 
 // ---- נגן ----
@@ -1617,7 +1705,8 @@ function setupMedia(id){
 mediaAudio.addEventListener("play", () => { if(playerReady && ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo(); });
 
 function openModal(song, index = 0, list = [song], start = 0){
-  if(!overlay.classList.contains("open")) lastFocus = document.activeElement;
+  const wasOpen = overlay.classList.contains("open");
+  if(!wasOpen) lastFocus = document.activeElement;
   currentSongList = list;
   currentSongIndex = index;
   modalTitle.textContent = song.title;
@@ -1632,7 +1721,7 @@ function openModal(song, index = 0, list = [song], start = 0){
     mediaAudio.play().catch(() => {});
   } else loadVideo(song.videoId, start);
   updateNavButtons();
-  replaceSongURL();
+  if(!wasOpen && !restoringURL) pushPlaylistURL(true); else replaceSongURL();
   const shareText = `${song.title}\n${window.location.origin}${buildShareURL()}`;
   whatsappBtn.href = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
   const prevPos = lastPlayed && lastPlayed.videoId === song.videoId ? lastPlayed.position : 0;
@@ -1649,18 +1738,21 @@ function togglePlayPause(){
   if(!playerReady || !ytPlayer || !ytPlayer.getPlayerState) return;
   if(ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) ytPlayer.pauseVideo(); else ytPlayer.playVideo();
 }
-function closeModal(){
+// fromHistory = הסגירה נגרמה ממעבר בהיסטוריה (כפתור חזרה), ולכן לא נוגעים בהיסטוריה שוב
+function closeModal(fromHistory){
   if(!overlay.classList.contains("open")) return;
   overlay.classList.remove("open");
   if(playerReady && ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
   mediaAudio.pause();
   keepScreenOn(false);
   currentSongIndex = -1; currentSongList = [];
-  replaceSongURL();
+  // הנגן נפתח כמסך חדש: סגירה = חזרה למסך הקודם. אם נכנסו ישר מקישור לשיעור, פשוט מורידים את השיעור מהכתובת
+  if(fromHistory !== true){ if(histState() && histState().m) history.back(); else replaceSongURL(); }
   renderContinueRow();
   if(lastFocus && lastFocus.focus) lastFocus.focus();
 }
-modalClose.onclick = closeModal;
+modalClose.onclick = () => closeModal();
+$("modalBack").onclick = () => closeModal();
 copyLinkBtn.onclick = async () => {
   const url = window.location.origin + buildShareURL();
   try { await navigator.clipboard.writeText(url); }
@@ -1676,6 +1768,9 @@ copyLinkBtn.onclick = async () => {
 prevBtn.onclick = () => playRelative(-1);
 nextBtn.onclick = () => playRelative(1);
 overlay.onclick = (e) => { if(e.target === overlay) closeModal(); };
+$("navBack").onclick = () => { if(navIdx > 0) history.back(); };
+$("navFwd").onclick = () => { if(navIdx < navMax) history.forward(); };
+$("navHome").onclick = () => { closeModal(true); goHome(); window.scrollTo({ top: 0, behavior: "smooth" }); };
 document.addEventListener("keydown", (e) => {
   const tag = (e.target.tagName || "").toLowerCase();
   if(tag === "input" || tag === "select" || tag === "textarea") return;
@@ -1686,7 +1781,7 @@ document.addEventListener("keydown", (e) => {
   else if(e.key === "ArrowLeft"){ e.preventDefault(); playRelative(-1); }
 });
 
-searchEl.addEventListener("input", () => { visibleLimit = PAGE_SIZE; renderFavRow(); renderTabs(); renderGrid(); });
+searchEl.addEventListener("input", () => { visibleLimit = PAGE_SIZE; renderFavRow(); renderTabs(); renderGrid(); updateScreenNav(); });
 sortEl.addEventListener("change", () => { visibleLimit = PAGE_SIZE; renderGrid(); });
 
 // ---- מצב כהה/בהיר ----
@@ -1708,9 +1803,12 @@ themeToggleBtn.onclick = () => {
 };
 
 // ---- כותרת וסטטיסטיקה ----
+let siteVisits = 0;
 function renderStats(){
   const total = Object.keys(VIDEOS).length;
-  $("statsLine").textContent = total ? `${playlists.length} נושאים · ${total} שיעורים` : "";
+  $("statsLine").textContent = (total ? `${playlists.length} נושאים · ${total} שיעורים` : "")
+    + (siteVisits ? ` · ${formatViews(siteVisits)} כניסות לאתר` : "");
+  $("visitsLine").textContent = siteVisits ? `מונה כניסות לאתר: ${formatViews(siteVisits)}` : "";
   if(DATA.generatedAt){
     $("updatedLine").textContent = "עודכן לאחרונה: " + new Date(DATA.generatedAt).toLocaleDateString("he-IL");
   }
@@ -1738,7 +1836,11 @@ $("plCols").onclick = () => { plView = "cols"; lsSet(PLVIEW_KEY, plView); syncGr
 $("plRows").onclick = () => { plView = "rows"; lsSet(PLVIEW_KEY, plView); syncGroupControls(); renderTabs(); };
 $("plSort").onchange = (e) => { plSort = e.target.value; lsSet(PLSORT_KEY, plSort); renderTabs(); };
 
-window.addEventListener("popstate", () => { applyStateFromURL(); renderAll(); });
+window.addEventListener("popstate", () => {
+  navIdx = histState() ? histState().i : 0;
+  if(navIdx > navMax){ navMax = navIdx; saveNavMax(); }
+  applyStateFromURL(); renderAll();
+});
 
 rebuildGroups();
 syncGroupControls();
@@ -1746,7 +1848,19 @@ applyStateFromURL();
 syncGroupControls();
 renderAll();
 renderStats();
+
+// ---- מונה כניסות כללי (GoatCounter, חינמי ושומר פרטיות: בלי עוגיות ובלי מעקב אישי) ----
+// כל טעינה של האתר נספרת ע"י הסקריפט שבסוף הדף. המספר הכולל נקרא מהכתובת הציבורית של המונה.
+// אם המונה עוד לא הוגדר (או נחסם), פשוט לא מוצג מספר.
+const GOATCOUNTER = "https://ginzei-haim.goatcounter.com";
+if(location.hostname.endsWith("ginzei-haim.org")){
+  fetch(GOATCOUNTER + "/counter/TOTAL.json").then(r => r.ok ? r.json() : null).then(j => {
+    const n = j && Number(String(j.count || "").replace(/\D/g, ""));
+    if(n){ siteVisits = n; renderStats(); }
+  }).catch(() => {});
+}
 </script>
+<script data-goatcounter="https://ginzei-haim.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 <script src="https://www.youtube.com/iframe_api"></script>
 
 </body>

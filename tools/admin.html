@@ -6,54 +6,59 @@
 <style>
   :root { --bg:#faf7f0; --card:#fff; --ink:#2b2b2b; --muted:#77706a; --line:#e6dfd2; --navy:#1f3a5f; --gold:#7a5a1f; --ok:#2e6b3a; --bad:#a33; --soft:#f3eee4; }
   * { box-sizing: border-box; }
-  body { margin:0; font-family: system-ui, "Segoe UI", Arial, sans-serif; background:var(--bg); color:var(--ink); font-size:17px; }
+  body { margin:0; font-family: system-ui, "Segoe UI", Arial, sans-serif; background:var(--bg); color:var(--ink); font-size:20px; }
   header { position:sticky; top:0; z-index:5; background:var(--navy); color:#fff; padding:12px 16px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
-  header h1 { font-size:20px; margin:0; flex:1; min-width:180px; }
+  header h1 { font-size:23px; margin:0; flex:1; min-width:180px; }
   button { font:inherit; border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:10px; padding:8px 14px; cursor:pointer; }
   button.primary { background:var(--gold); border-color:var(--gold); color:#fff; }
   button.ghost { background:transparent; color:#fff; border-color:rgba(255,255,255,.5); }
   button:disabled { opacity:.5; cursor:default; }
   main { max-width:900px; margin:0 auto; padding:12px 16px 80px; }
-  .help { background:var(--soft); border:1px solid var(--line); border-radius:12px; padding:10px 14px; margin:8px 0 12px; line-height:1.55; font-size:15px; }
+  .help { background:var(--soft); border:1px solid var(--line); border-radius:12px; padding:10px 14px; margin:8px 0 12px; line-height:1.55; font-size:17px; }
   .help code { background:#fff; padding:1px 5px; border-radius:5px; direction:ltr; unicode-bidi:embed; }
   .bar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:8px 0 12px; }
   .bar input[type=search] { flex:1; min-width:200px; font:inherit; padding:9px 12px; border:1px solid var(--line); border-radius:10px; }
   .tabs button.on { background:var(--navy); color:#fff; border-color:var(--navy); }
-  .status { margin:6px 0; min-height:1.4em; font-size:15px; }
+  .status { margin:6px 0; min-height:1.4em; font-size:17px; }
   .status.ok { color:var(--ok); } .status.err { color:var(--bad); }
   .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:10px; }
   .card .top { display:flex; gap:8px; align-items:baseline; flex-wrap:wrap; }
   .date { font-weight:600; color:var(--navy); white-space:nowrap; }
-  .place { font-size:14px; color:var(--muted); }
+  .place { font-size:16px; color:var(--muted); }
   .title { margin:4px 0 8px; line-height:1.4; }
-  .row { display:flex; gap:6px; align-items:baseline; font-size:15px; margin:2px 0; }
+  .row { display:flex; gap:6px; align-items:baseline; font-size:17px; margin:2px 0; }
   .row .ic { width:1.4em; flex:none; text-align:center; }
   .fname { direction:ltr; unicode-bidi:embed; word-break:break-all; }
   .none { color:var(--bad); }
-  .tag { font-size:12px; border-radius:20px; padding:1px 8px; border:1px solid var(--line); color:var(--muted); }
+  .tag { font-size:14px; border-radius:20px; padding:1px 8px; border:1px solid var(--line); color:var(--muted); }
   .tag.manual { border-color:var(--gold); color:var(--gold); }
   .tag.auto { border-color:var(--ok); color:var(--ok); }
   .card .actions { margin-top:8px; }
   .more { text-align:center; margin:16px 0; }
   /* עורך */
   .ed { margin-top:10px; border-top:1px dashed var(--line); padding-top:10px; }
-  .ed h3 { font-size:16px; margin:10px 0 6px; }
+  .ed h3 { font-size:18px; margin:10px 0 6px; }
   .ed input[type=search] { width:100%; font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:10px; }
-  .ed select { width:100%; font-size:15px; border:1px solid var(--line); border-radius:10px; margin-top:6px; direction:ltr; }
+  .ed select { width:100%; font-size:17px; border:1px solid var(--line); border-radius:10px; margin-top:6px; direction:ltr; }
   .chosen { display:flex; flex-direction:column; gap:4px; margin:6px 0; }
   .chip { display:flex; gap:8px; align-items:center; background:var(--soft); border-radius:8px; padding:5px 8px; }
   .chip .fname { flex:1; }
   .chip button { padding:2px 9px; }
   .ed .btns { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
   a { color:var(--gold); }
+  /* כפתורי ניווט בולטים בכותרת */
+  .navbtn { display:inline-flex; align-items:center; gap:8px; min-height:48px; padding:6px 18px; border-radius:12px; border:2px solid #fff; background:#fff; color:var(--navy); font-weight:800; font-size:18px; text-decoration:none; cursor:pointer; }
+  .navbtn.ghost { background:transparent; color:#fff; }
+  .navbtn .ar { font-size:1.4em; line-height:1; }
   .empty { text-align:center; color:var(--muted); padding:30px 0; }
 </style>
 </head>
 <body>
 <header>
+  <button class="navbtn" id="backBtn" type="button" title="חזרה למסך הקודם"><span class="ar" aria-hidden="true">→</span> חזרה</button>
   <h1>ניהול קבצים · גנזי חיים</h1>
   <button class="ghost" id="syncBtn" type="button">🔄 סנכרון עכשיו</button>
-  <a href="https://ginzei-haim.org/" style="color:#fff">לאתר</a>
+  <a class="navbtn ghost" href="https://ginzei-haim.org/">🏠 לאתר</a>
 </header>
 <main>
   <div class="help">
@@ -78,6 +83,16 @@
 var KEY = <?!= JSON.stringify(key) ?>;
 var S = { data: null, filter: 'recent', q: '', shown: 40, open: null };
 var $ = function (id) { return document.getElementById(id); };
+// חזרה: אם פתוח עורך של שיעור, סוגרים אותו (וחוזרים לרשימה). אחרת חוזרים לדף הקודם בדפדפן.
+$('backBtn').onclick = function () {
+  if (S.open) {
+    var c = $('c-' + S.open);
+    S.open = null; S.ed = null;
+    if (c) { c.querySelector('.edslot').innerHTML = ''; c.scrollIntoView({ block: 'center' }); }
+    return;
+  }
+  history.back();
+};
 
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 function base(k) { return k.split('/').pop(); }

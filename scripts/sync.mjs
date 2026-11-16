@@ -14,6 +14,12 @@ const SEEN_PATH = path.join(ROOT, "data", "seen.json");
 // סרטונים שכבר באתר אבל עוד לא סופיים (פרמיירה מתוכננת, שידור חי, בעיבוד), עם "חתימה" של מצבם.
 // הבדיקה המהירה מסנכרנת מחדש רק כשהחתימה משתנה (למשל הפרמיירה הסתיימה ויש משך).
 const PENDING_PATH = path.join(ROOT, "data", "pending.json");
+// מועד הסנכרון המלא האחרון. מספרי הצפיות מתעדכנים רק בסנכרון מלא, ולכן הבדיקה המהירה מריצה סנכרון מלא
+// גם כשלא הועלה שיעור חדש: בשעות REFRESH_HOURS_UTC (בנוסף לסנכרון המלא של 03:00), אם עברו לפחות 5 שעות מהסנכרון המלא האחרון.
+// השעות הקבועות מגבילות את הניסיונות החוזרים אם סנכרון נכשל (כ-130 יחידות מכסה לכל סנכרון מלא, מתוך 10,000 ביום).
+const LAST_FULL_PATH = path.join(ROOT, "data", "last-full.json");
+const REFRESH_HOURS_UTC = [9, 15, 21];
+const FULL_MIN_GAP_HOURS = 5;
 const QUICK = process.env.QUICK === "1";
 const API = "https://www.googleapis.com/youtube/v3/";
 
@@ -104,7 +110,11 @@ if (QUICK) {
       const byId = Object.fromEntries((data.items || []).map(v => [v.id, v]));
       for (const id of batch) if (signature(byId[id]) !== pendingPrev[id]) fresh.push(id);
     }
-    if (!fresh.length) {
+    let lastFull = 0;
+    try { lastFull = Date.parse(JSON.parse(await readFile(LAST_FULL_PATH, "utf8")).at) || 0; } catch {}
+    const stale = REFRESH_HOURS_UTC.includes(new Date().getUTCHours()) && Date.now() - lastFull > FULL_MIN_GAP_HOURS * 3600 * 1000;
+    if (!fresh.length && stale) console.log("רענון תקופתי: סנכרון מלא כדי לעדכן את מספרי הצפיות.");
+    if (!fresh.length && !stale) {
       console.log("אין סרטונים חדשים בערוץ, מדלג.");
       await setOutput("skip", "true");
       process.exit(0);
@@ -279,5 +289,6 @@ if (pending.size) console.log("סרטונים שעדיין לא סופיים (י
 await writeFile(SEEN_PATH, JSON.stringify([...new Set(uploadIds)].filter(id => !pending.has(id)).sort()));
 const pendingOut = Object.fromEntries(Object.keys(pendingSig).sort().map(id => [id, pendingSig[id]]));
 await writeFile(PENDING_PATH, JSON.stringify(pendingOut));
+await writeFile(LAST_FULL_PATH, JSON.stringify({ at: new Date().toISOString() }));
 await setOutput("skip", "false");
 console.log("יחידות מכסה שנוצלו:", quota, "(מתוך 10,000 ביום)");
