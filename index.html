@@ -140,8 +140,13 @@
     max-width:900px;
     margin:0 auto 10px;
   }
-  .brand-emblem{width:132px; height:auto; flex:none;}
+  .brand-emblem{width:132px; height:auto; flex:none; display:block;}
+  .brand-emblem-link{flex:none;}
   .brand h1{margin:0; flex:1; min-width:0; display:flex; justify-content:center;}
+  /* לחיצה על הסמלים או על הכותרת מחזירה לדף הבית */
+  .brand-home{display:block; cursor:pointer; border-radius:12px; -webkit-tap-highlight-color:transparent;}
+  .brand h1 .brand-home{width:100%; max-width:610px;}
+  .brand-home:focus-visible{outline:3px solid var(--accent2); outline-offset:4px;}
   /* הכותרת: גדולה יותר, מורמת ומוזזת מעט ימינה כדי לשבת באמצע בין שני הסמלים */
   .brand-title{display:block; width:100%; max-width:610px; height:auto; transform:translate(var(--title-dx, 8px), var(--title-dy, -16px));}
   :root:not([data-theme="light"]) .brand-emblem{filter:invert(1) hue-rotate(180deg) brightness(1.05);}
@@ -284,10 +289,10 @@
     display:flex;
     flex-wrap:wrap;
     justify-content:center;
-    gap:10px;
-    max-width:900px;
+    gap:16px 18px;
+    max-width:960px;
     margin:0 auto;
-    padding:20px 16px 8px;
+    padding:22px 16px 10px;
   }
   .category-chip{
     display:inline-flex;
@@ -323,10 +328,18 @@
   .category-chip.closed{border-style:dashed; color:var(--muted);}
   .category-chip.closed .chip-icon{filter:grayscale(.7); opacity:.75;}
   .chip-closed{font-size:.82rem; font-weight:600; padding:1px 7px; border-radius:999px; background:color-mix(in srgb, var(--muted) 18%, transparent); color:var(--muted);}
+  /* הקבוצה שנבחרה: מודגשת מאוד, כשכל שאר הכפתורים נשארים במקומם */
   .category-chip.active{
-    border-color:var(--accent2);
-    box-shadow:0 0 0 2px color-mix(in srgb, var(--accent2) 25%, transparent), 0 10px 22px rgba(0,0,0,.1);
+    background:var(--accent2);
+    color:var(--accent2-contrast);
+    border:2px solid var(--accent2);
+    font-weight:800;
+    box-shadow:0 0 0 4px color-mix(in srgb, var(--accent2) 30%, transparent), 0 8px 20px rgba(0,0,0,.22);
   }
+  .category-chip.active:hover{background:var(--accent2);}
+  @media (max-width:600px){ .categories{gap:12px 12px; padding:18px 12px 8px;} }
+  .category-chip.active .chip-icon{background:rgba(255,255,255,.92) !important;}
+  .category-chip.active .chip-closed{background:rgba(255,255,255,.25); color:inherit;}
   .category-header{
     display:flex;
     flex-direction:column;
@@ -936,6 +949,9 @@
     .modal-footer{padding:12px 12px 16px;}
   }
   .modal-header h3{flex:1; min-width:0;}
+  .modal-heading{flex:1; min-width:0; display:flex; flex-direction:column; gap:3px;}
+  .modal-series{font-size:.95rem; font-weight:700; color:var(--accent2); line-height:1.3;}
+  .modal-series:empty{display:none;}
   /* צפיות ביוטיוב בכרטיס השיעור */
   .views{white-space:nowrap;}
   /* תוויות קטנות (קבץ לפי, מיון): כהות ומודגשות לקריאות */
@@ -960,9 +976,9 @@
 <header>
   <button id="themeToggle" class="theme-toggle" title="החלף מצב תצוגה"></button>
   <div class="brand">
-    <img class="brand-emblem" src="assets/emblem.webp?v=3" alt="" aria-hidden="true" width="300" height="408">
-    <h1 id="siteTitle"><img class="brand-title" src="assets/title.webp?v=3" alt="גנזי חיים" width="900" height="224"></h1>
-    <img class="brand-emblem" src="assets/emblem.webp?v=3" alt="" aria-hidden="true" width="300" height="408">
+    <a class="brand-home brand-emblem-link" href="./" tabindex="-1" aria-hidden="true" title="לדף הבית"><img class="brand-emblem" src="assets/emblem.webp?v=3" alt="" width="300" height="408"></a>
+    <h1 id="siteTitle"><a class="brand-home" href="./" title="לדף הבית"><img class="brand-title" src="assets/title.webp?v=3" alt="גנזי חיים" width="900" height="224"></a></h1>
+    <a class="brand-home brand-emblem-link" href="./" tabindex="-1" aria-hidden="true" title="לדף הבית"><img class="brand-emblem" src="assets/emblem.webp?v=3" alt="" width="300" height="408"></a>
   </div>
   <p id="siteSubtitle">שיעורי הרב יואל חקון</p>
   <p class="stats" id="statsLine"></p>
@@ -1060,7 +1076,10 @@
   <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-header">
       <button type="button" class="modal-back" id="modalBack" title="סגירת הנגן וחזרה למסך הקודם"><span class="sn-arrow" aria-hidden="true">→</span> חזרה</button>
-      <h3 id="modalTitle"></h3>
+      <div class="modal-heading">
+        <div class="modal-series" id="modalSeries"></div>
+        <h3 id="modalTitle"></h3>
+      </div>
       <button class="modal-close" id="modalClose" aria-label="סגור">&times;</button>
     </div>
     <div class="video-frame-wrap">
@@ -1384,16 +1403,28 @@ function renderCategories(){
     chip.className += cat.closed ? " closed" : "";
     if(cat.closed) chip.title = "קבוצה שהסתיימה. השיעורים זמינים להאזנה";
     chip.innerHTML = `<span class="chip-icon" aria-hidden="true" style="background:color-mix(in srgb, ${cat.color} 16%, transparent)">${BOOK_ICON(cat.color)}</span><span class="chip-label">${escapeHtml(cat.label)}</span>${cat.closed ? `<span class="chip-closed">סגורה</span>` : ""}`;
+    chip.setAttribute("aria-pressed", currentCategory === cat.key && !homeView ? "true" : "false");
     chip.onclick = () => {
+      // לחיצה נוספת על הקבוצה המודגשת חוזרת לדף הבית, כמו בכפתור המועדפים
+      if(currentCategory === cat.key && !homeView && !isSearching()){ goHome(); return; }
       currentCategory = cat.key;
       const visible = playlists.filter(pl => groupOf(pl) === currentCategory);
       currentPlaylistId = visible.length > 1 ? GROUP_ID : (visible.length ? visible[0].id : null);
       homeView = false; searchEl.value = ""; visibleLimit = PAGE_SIZE;
       renderAll(); pushPlaylistURL();
-      window.scrollTo({ top: categoryHeaderEl.offsetTop - 16, behavior: "smooth" });
+      scrollToGroupContent();
     };
     categoriesEl.appendChild(chip);
   });
+}
+
+// אחרי בחירת קבוצה: כפתורי הקבוצות נשארים בראש המסך, והשיעורים מתחתיהם
+function scrollToGroupContent(){
+  const navH = (document.querySelector(".screen-nav") || {}).offsetHeight || 0;
+  const anchor = $("groupBy").offsetParent ? $("groupBy") : categoriesEl;
+  const top = anchor.getBoundingClientRect().top + window.scrollY - navH - 8;
+  if(top < window.scrollY) window.scrollTo({ top, behavior: "smooth" });
+  else if(categoryHeaderEl.getBoundingClientRect().top > window.innerHeight * 0.75) window.scrollTo({ top, behavior: "smooth" });
 }
 
 function renderFavRow(){
@@ -1423,7 +1454,7 @@ function renderContinueRow(){
     if(idx !== -1){
       currentPlaylistId = lastPlayed.playlistId;
       const pl = findPlaylist(currentPlaylistId);
-      currentCategory = pl ? pl.category : null;
+      currentCategory = categoryOf(pl);
       homeView = false;
     } else {
       const found = selectPlaylistContaining(lastPlayed.videoId);
@@ -1472,12 +1503,13 @@ function updateViewMode(){
   const noData = playlists.length === 0;
   const showHome = homeView && !searching;
   const showSubList = !homeView && !searching;
-  categoriesEl.style.display = showHome && !noData ? "" : "none";
+  // כפתורי הקבוצות נשארים תמיד באותו מקום, כדי שהמסך לא יזוז בין דף הבית לקבוצה
+  categoriesEl.style.display = noData ? "none" : "";
   recentSectionEl.style.display = showHome && UPLOADS.length ? "" : "none";
   categoryHeaderEl.style.display = showSubList ? "" : "none";
   tabsEl.style.display = showSubList && tabsEl.children.length > 1 ? "" : "none";
   $("plBar").style.display = showSubList && tabsEl.children.length > 1 ? "" : "none";
-  $("groupBy").style.display = playlists.length && !searching && (showHome || showSubList) ? "" : "none";
+  $("groupBy").style.display = playlists.length ? "" : "none";
   sortBarEl.style.display = showHome || noData ? "none" : "";
   titleEl.style.display = showHome ? "none" : "";
   descriptionEl.style.display = showHome ? "none" : "";
@@ -1708,12 +1740,21 @@ function setupMedia(id){
 // האזנה לשמע בלבד: משתיקים את הוידאו כדי שלא יתנגנו שניהם יחד
 mediaAudio.addEventListener("play", () => { if(playerReady && ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo(); });
 
+// שם הקבוצה (הסדרה) של השיעור, להצגה בחלון הנגן
+function seriesNameOf(song){
+  const pl = findPlaylist(currentPlaylistId);
+  if(pl && pl.lessons.some(s => s.videoId === song.videoId)) return pl.name;
+  const has = (p) => p.lessons.some(s => s.videoId === song.videoId);
+  const any = (currentCategory && playlists.find(p => groupOf(p) === currentCategory && has(p))) || playlists.find(has);
+  return any ? any.name : "";
+}
 function openModal(song, index = 0, list = [song], start = 0){
   const wasOpen = overlay.classList.contains("open");
   if(!wasOpen) lastFocus = document.activeElement;
   currentSongList = list;
   currentSongIndex = index;
   modalTitle.textContent = song.title;
+  $("modalSeries").textContent = seriesNameOf(song);
   modalLink.href = `https://www.youtube.com/watch?v=${song.videoId}`;
   setupMedia(song.videoId);
   overlay.classList.add("open");
@@ -1775,6 +1816,10 @@ overlay.onclick = (e) => { if(e.target === overlay) closeModal(); };
 $("navBack").onclick = () => { if(navIdx > 0) history.back(); };
 $("navFwd").onclick = () => { if(navIdx < navMax) history.forward(); };
 $("navHome").onclick = () => { closeModal(true); goHome(); window.scrollTo({ top: 0, behavior: "smooth" }); };
+document.querySelectorAll(".brand-home").forEach(a => a.addEventListener("click", (e) => {
+  if(e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+  e.preventDefault(); $("navHome").onclick();
+}));
 document.addEventListener("keydown", (e) => {
   const tag = (e.target.tagName || "").toLowerCase();
   if(tag === "input" || tag === "select" || tag === "textarea") return;
