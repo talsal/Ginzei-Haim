@@ -274,6 +274,43 @@ const prefix = config.stripPrefix || "";
 const clean = t => (prefix && t.startsWith(prefix) ? t.slice(prefix.length) : t).trim() || t;
 for (const v of Object.values(videos)) v.title = clean(v.title);
 for (const p of playlists) p.name = clean(p.name);
+// ---- כפילויות בין ערוצים ----
+// שיעור שהרב העלה מחדש לערוץ החדש (אותו שם בדיוק, משך דומה) מוצג פעם אחת, מהערוץ המאוחר ברשימת config.channels.
+// השיעור שנשאר יורש את תאריך השיעור המקורי, את מספר הצפיות הגבוה, ואת קבצי השמע וה-PDF של הסרטון הישן (out.replaces).
+const chOf = {};
+channels.forEach((c, i) => { for (const id of idsOf(c)) chOf[id] = i; });
+const norm = t => t.replace(/\s+/g, " ").trim();
+const byTitle = {};
+for (const id of Object.keys(videos)) (byTitle[norm(videos[id].title)] ||= []).push(id);
+const replaces = {};
+const droppedBy = {};
+const secs = d => d.split(":").reduce((a, x) => a * 60 + Number(x), 0);
+for (const ids of Object.values(byTitle)) {
+  if (ids.length < 2) continue;
+  const newest = Math.max(...ids.map(id => chOf[id] ?? 0));
+  const keepers = ids.filter(id => (chOf[id] ?? 0) === newest);
+  const olds = ids.filter(id => (chOf[id] ?? 0) < newest);
+  if (keepers.length !== 1 || !olds.length) continue;
+  const keep = keepers[0];
+  const match = olds.filter(o => !videos[o].duration || !videos[keep].duration || Math.abs(secs(videos[o].duration) - secs(videos[keep].duration)) <= 10);
+  if (!match.length) continue;
+  const old = [...match].sort((a, b) => (videos[a].published || "").localeCompare(videos[b].published || ""))[0];
+  for (const o of match) droppedBy[o] = keep;
+  replaces[keep] = old;
+  if (videos[old].published) videos[keep].published = videos[old].published;
+  videos[keep].views = Math.max(...match.map(o => videos[o].views || 0), videos[keep].views || 0);
+}
+if (Object.keys(droppedBy).length) {
+  console.log("כפילויות בין ערוצים שהוסתרו:", Object.keys(droppedBy).length);
+  for (const o of Object.keys(droppedBy)) delete videos[o];
+  const remap = ids => [...new Set(ids.map(id => droppedBy[id] || id))];
+  for (const p of playlists) p.videoIds = remap(p.videoIds);
+  const upl = remap(uploads).filter(id => videos[id]);
+  uploads.length = 0;
+  uploads.push(...upl);
+  uploads.sort((a, b) => (videos[b].published || "").localeCompare(videos[a].published || ""));
+}
+for (const id of Object.keys(videos)) if ((chOf[id] ?? 0) > 0) videos[id].ch = chOf[id];
 // פלייליסט באותו שם בכמה ערוצים (למשל סדרה שהתחילה בערוץ הישן וממשיכה בערוץ האישי) מוצג כסדרה אחת, עם המזהה של הראשון
 for (let i = playlists.length - 1; i >= 0; i--) {
   const p = playlists[i];
@@ -310,6 +347,7 @@ const out = {
   categories: finalCategories,
   playlists,
   uploads,
+  ...(Object.keys(replaces).length ? { replaces } : {}),
   videos: sortedVideos,
 };
 
