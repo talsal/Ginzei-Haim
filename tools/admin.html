@@ -110,15 +110,15 @@ function call(fn) {
   });
 }
 
-function load() {
-  status('טוען את השיעורים...');
+function load(quiet) {
+  if (!quiet) status('טוען את השיעורים...');
   call('adminData').then(function (txt) {
     S.data = JSON.parse(txt);
     S.byId = {};
     S.data.lessons.forEach(function (l) { S.byId[l.id] = l; });
     S.mp3 = S.data.files.filter(function (k) { return /\.mp3$/i.test(k); });
     S.pdf = S.data.files.filter(function (k) { return /\.pdf$/i.test(k); });
-    status('');
+    if (!quiet) status('');
     render();
   }).catch(function (e) { status('הטעינה נכשלה: ' + e, 'err'); });
 }
@@ -241,10 +241,29 @@ $('tabs').addEventListener('click', function (ev) {
 });
 $('q').addEventListener('input', function () { S.q = this.value; S.shown = 40; S.open = null; render(); });
 $('moreBtn').onclick = function () { S.shown += 60; render(); };
+function syncResult(since, tries) {
+  call('adminSyncResult', since).then(function (txt) {
+    var r = JSON.parse(txt);
+    if (r.state === 'failed') { status('הסנכרון נכשל. כדאי לנסות שוב בעוד כמה דקות.', 'err'); return; }
+    if (r.state !== 'done') {
+      if (tries > 60) { status('הסנכרון לוקח יותר מהרגיל. אפשר לבדוק שוב בעוד כמה דקות.', 'err'); return; }
+      status('הסנכרון רץ... (עוד רגע)'); setTimeout(function () { syncResult(since, tries + 1); }, 6000); return;
+    }
+    var fresh = Object.keys(r.lessons).filter(function (id) { return !S.byId[id]; })
+      .sort(function (a, b) { return r.lessons[a].d < r.lessons[b].d ? 1 : -1; });
+    if (!fresh.length) { status('✓ הסנכרון הסתיים: לא נמצאו שיעורים חדשים.', 'ok'); return; }
+    var n = fresh.length;
+    var head = n === 1 ? 'נוסף שיעור חדש אחד' : 'נוספו ' + n + ' שיעורים חדשים';
+    status('✓ הסנכרון הסתיים: ' + head + ': ' + fresh.slice(0, 5).map(function (id) { return r.lessons[id].t; }).join(' | ') + (n > 5 ? ' ועוד ' + (n - 5) : '') + '. האתר יתעדכן בעוד כדקה-שתיים.', 'ok');
+    load(true);
+  }).catch(function (e) { status('לא הצלחתי לבדוק את תוצאת הסנכרון: ' + e, 'err'); });
+}
 $('syncBtn').onclick = function () {
   var b = this; b.disabled = true; status('מפעיל סנכרון...');
-  call('adminSync').then(function (r) {
-    status(r === 'recent' ? 'הסנכרון כבר רץ. האתר יתעדכן בעוד כ-2 דקות.' : '✓ הסנכרון הופעל. שיעורים וקבצים חדשים יופיעו באתר בעוד כ-2 דקות.', 'ok');
+  call('adminSync').then(function (txt) {
+    var r = JSON.parse(txt);
+    status(r.r === 'recent' ? 'סנכרון כבר רץ, ממתין לתוצאה...' : 'הסנכרון הופעל, ממתין לתוצאה...');
+    syncResult(r.since, 0);
   }).catch(function (e) { status('הסנכרון לא הופעל: ' + e, 'err'); }).then(function () { setTimeout(function () { b.disabled = false; }, 60000); });
 };
 load();

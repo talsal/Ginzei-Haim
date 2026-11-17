@@ -193,13 +193,35 @@ function adminSave(key, id, value, title) {
   throw new Error('השמירה נכשלה, כדאי לנסות שוב');
 }
 
-// כפתור "סנכרון עכשיו"
+// כפתור "סנכרון עכשיו". מחזיר את רגע ההפעלה כדי שהדף יוכל לעקוב אחרי הריצה (adminSyncResult)
 function adminSync(key) {
   checkKey_(key);
   var cache = CacheService.getScriptCache();
-  if (cache.get('recent')) return 'recent';
+  var recent = cache.get('recent');
+  if (recent) return JSON.stringify({ r: 'recent', since: recent });
+  var since = new Date(Date.now() - 20000).toISOString(); // מרווח קטן למקרה של הבדלי שעון
   var code = dispatch_(false);
   if (code !== 204) throw new Error('הסנכרון לא הופעל (קוד ' + code + ')');
-  cache.put('recent', '1', 60);
-  return 'ok';
+  cache.put('recent', since, 60);
+  return JSON.stringify({ r: 'ok', since: since });
+}
+
+// מצב הסנכרון שהופעל ב-since: waiting / running / failed, או done עם כל השיעורים (הדף משווה למה שהיה לפני הסנכרון)
+function adminSyncResult(key, since) {
+  checkKey_(key);
+  var r = gh_('get', 'actions/workflows/' + WORKFLOW + '/runs?event=workflow_dispatch&branch=main&per_page=5&created=' +
+    encodeURIComponent('>=' + String(since).slice(0, 19) + 'Z'));
+  if (r.getResponseCode() !== 200) throw new Error('בדיקת הריצה נכשלה (' + r.getResponseCode() + ')');
+  var runs = JSON.parse(r.getContentText()).workflow_runs || [];
+  if (!runs.length) return JSON.stringify({ state: 'waiting' });
+  var run = runs[0];
+  if (run.status !== 'completed') return JSON.stringify({ state: 'running' });
+  if (run.conclusion !== 'success') return JSON.stringify({ state: 'failed', url: run.html_url });
+  var L = windowVar_(raw_('data/lessons.js'), 'LESSONS_DATA');
+  var extra = (windowVar_(raw_('data/media.js'), 'MEDIA_DATA').extra || {}).videos || {};
+  var all = {};
+  [L.videos || {}, extra].forEach(function (vs) {
+    Object.keys(vs).forEach(function (id) { all[id] = { t: vs[id].title, d: vs[id].published || '' }; });
+  });
+  return JSON.stringify({ state: 'done', lessons: all });
 }
