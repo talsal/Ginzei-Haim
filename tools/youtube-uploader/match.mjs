@@ -36,10 +36,10 @@ export function datesIn(name) {
   while ((m = reA.exec(s))) add(valid(+m[1], +m[2], +m[3]));
   const reB = /(?:^|\D)(\d\d?)[-._ ](\d\d?)[-._ ](20\d\d)(?!\d)/g; // 11.11.2026
   while ((m = reB.exec(s))) add(valid(+m[3], +m[2], +m[1]));
-  const reC = /(?:^|\D)(\d\d)[-._ ](\d\d)[-._ ](\d\d)(?!\d)/g; // 26-11-11 (שנה-חודש-יום) או 11.11.26 (יום-חודש-שנה)
+  const reC = /(?:^|\D)(\d\d)[-._ ](\d\d)[-._ ](\d\d)(?!\d)/g; // 26-11-11 (שנה-חודש-יום, כמו אצל הרב) או 11.11.26 (יום-חודש-שנה)
   while ((m = reC.exec(s))) {
-    add(valid(2000 + +m[1], +m[2], +m[3]));
-    add(valid(2000 + +m[3], +m[2], +m[1]));
+    const ymd = +m[1] >= 15 && +m[1] <= 40 ? valid(2000 + +m[1], +m[2], +m[3]) : null;
+    add(ymd || valid(2000 + +m[3], +m[2], +m[1]));
   }
   return [...out];
 }
@@ -70,19 +70,20 @@ export function matchFile(fileName, entries, ctx = {}) {
   const byAudio = free.filter((e) => e.audio && norm(stemOf(e.audio)) === nStem);
   if (byAudio.length) return one(byAudio, "שם קובץ השמע");
 
-  // 3. תאריך + קוד מקום
+  // 3. תאריך (+ קוד מקום, + מילים משותפות עם שם קובץ השמע). שיעור בלי קובץ שמע מזוהה לפי תאריך הפרסום (עד 3 ימים אחרי תאריך השיעור)
   const dates = new Set(datesIn(fileName));
   const code = placeCodeOf(fileName);
   if (dates.size) {
-    let cand = free.filter((e) => e.audioDate && dates.has(e.audioDate));
+    const dayDiff = (a, b) => Math.round((Date.parse(a) - Date.parse(b)) / 86400000);
+    let cand = free.filter((e) => (e.audioDate && dates.has(e.audioDate)) || (!e.audio && e.date && [...dates].some((d) => { const k = dayDiff(e.date, d); return k >= 0 && k <= 3; })));
     if (code) {
       const withCode = cand.filter((e) => e.audioCode === code);
       if (withCode.length) cand = withCode;
     }
-    if (cand.length === 1) return { entry: cand[0], how: "תאריך ומקום" };
+    if (cand.length === 1) return { entry: cand[0], how: "תאריך" + (code ? " ומקום" : "") };
     if (cand.length > 1) {
-      const scored = cand.map((e) => ({ e, s: overlap(stem, stemOf(e.audio)) })).sort((a, b) => b.s - a.s);
-      if (scored[0].s > scored[1].s) return { entry: scored[0].e, how: "תאריך ומקום ושם" };
+      const scored = cand.map((e) => ({ e, s: e.audio ? overlap(stem, stemOf(e.audio)) : 0 })).sort((a, b) => b.s - a.s);
+      if (scored[0].s > scored[1].s) return { entry: scored[0].e, how: "תאריך ושם" };
       return { ambiguous: cand.map((e) => e.id) };
     }
   }
@@ -95,11 +96,6 @@ export function matchFile(fileName, entries, ctx = {}) {
     if (part.length === 1) return { entry: part[0], how: "כותרת חלקית" };
   }
 
-  // 5. תאריך בלבד: שיעור יחיד בלי קובץ שמע בתאריך (כולל יום או יומיים אחרי התאריך המקורי)
-  if (dates.size) {
-    const cand = free.filter((e) => !e.audio && dates.has(e.date));
-    if (cand.length === 1) return { entry: cand[0], how: "תאריך בלבד" };
-  }
   return null;
 }
 
