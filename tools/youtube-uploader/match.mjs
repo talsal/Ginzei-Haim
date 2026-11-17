@@ -50,7 +50,7 @@ export function placeCodeOf(name) {
   return m ? m[1].toUpperCase() : "";
 }
 
-const tokens = (s) => new Set(norm(s).split(" ").filter((t) => t.length > 1));
+const tokens = (s) => new Set(norm(s).split(" ").filter((t) => t.length > 1 && /\p{L}/u.test(t)));
 function overlap(a, b) {
   const A = tokens(a), B = tokens(b);
   let n = 0;
@@ -75,7 +75,7 @@ export function matchFile(fileName, entries, ctx = {}) {
   const code = placeCodeOf(fileName);
   if (dates.size) {
     const dayDiff = (a, b) => Math.round((Date.parse(a) - Date.parse(b)) / 86400000);
-    let cand = free.filter((e) => (e.audioDate && dates.has(e.audioDate)) || (!e.audio && e.date && [...dates].some((d) => { const k = dayDiff(e.date, d); return k >= 0 && k <= 3; })));
+    let cand = free.filter((e) => (e.audioDate && dates.has(e.audioDate)) || (e.date && [...dates].some((d) => { const k = dayDiff(e.date, d); return k >= 0 && k <= 3; })));
     if (code) {
       const withCode = cand.filter((e) => e.audioCode === code);
       if (withCode.length) cand = withCode;
