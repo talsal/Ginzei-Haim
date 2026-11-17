@@ -394,7 +394,7 @@ async function uploadFolder(list, ctx, doneOld, rows, count) {
     if (!entry) {
       const m = matchFile(name, list.lessons, { taken });
       // התאמה לפי תאריך בלבד, בקובץ שהשם שלו לא מצביע על הרב (בתיקייה יכולים להיות גם שיעורים של רבנים אחרים): לא מעלים אוטומטית
-      const prefixes = (settings.namePrefixes || ["shiur", "jh"]).map((x) => x.toLowerCase());
+      const prefixes = (settings.namePrefixes || ["jh"]).map((x) => x.toLowerCase());
       if (m && m.entry && /^תאריך/.test(m.how) && !prefixes.some((p) => name.toLowerCase().startsWith(p))) {
         rows.push([f, "", m.entry.id, m.entry.title, `התאמה לפי תאריך בלבד, ושם הקובץ לא מתחיל ב-${prefixes.join(" / ")}. לא הועלה (אפשר לקבוע ב-file-map.csv)`]);
         continue;
