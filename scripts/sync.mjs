@@ -300,6 +300,15 @@ for (const ids of Object.values(byTitle)) {
   if (videos[old].published) videos[keep].published = videos[old].published;
   videos[keep].views = Math.max(...match.map(o => videos[o].views || 0), videos[keep].views || 0);
 }
+// החלפה ידנית: config.replacements = { "מזהה סרטון ישן": "מזהה סרטון חדש" }. עובדת גם כשהכותרות שונות.
+// משתמשים בזה כשהשיעור הועלה מחדש לערוץ החדש בלי אותה כותרת בדיוק. שני הסרטונים צריכים להיות באתר (ציבוריים ומעובדים).
+for (const [o, n] of Object.entries(config.replacements || {})) {
+  if (o.startsWith("_") || !videos[o] || !videos[n] || o === n) continue;
+  droppedBy[o] = n;
+  replaces[n] = o;
+  if (videos[o].published) videos[n].published = videos[o].published;
+  videos[n].views = Math.max(videos[o].views || 0, videos[n].views || 0);
+}
 if (Object.keys(droppedBy).length) {
   console.log("כפילויות בין ערוצים שהוסתרו:", Object.keys(droppedBy).length);
   for (const o of Object.keys(droppedBy)) delete videos[o];
