@@ -1,0 +1,84 @@
+name: העתקת פרטי שיעורים לערוץ החדש ביוטיוב
+
+# מתאים כל סרטון שהרב העלה לערוץ החדש (@ginzei-haim) לשיעור המקביל בערוץ הישן, ומעתיק אליו כותרת, תיאור, תגיות וסדרה (פלייליסט).
+# סודות נדרשים: YT_CLIENT_ID, YT_CLIENT_SECRET, YT_REFRESH_TOKEN (ראו tools/youtube-uploader/README.md).
+# לוקח ~100 יחידות מכסה לשיעור, כלומר עד כ-90 שיעורים ביום ממכסת ברירת המחדל.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "בדיקה בלבד: רק דוח, לא משנה כלום ביוטיוב"
+        type: boolean
+        default: true
+      careful:
+        description: "לעדכן רק התאמות שאושרו גם לפי שם (לא לפי משך בלבד)"
+        type: boolean
+        default: false
+  schedule:
+    - cron: "40 6 * * *"   # פעם ביום, אחרי שהמכסה התאפסה. אפשר למחוק את השורה הזאת כשכל השיעורים הועברו.
+
+permissions:
+  contents: write
+
+concurrency:
+  group: youtube-fix
+  cancel-in-progress: false
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: בדיקת סודות
+        id: check
+        env:
+          T: ${{ secrets.YT_REFRESH_TOKEN }}
+        run: |
+          if [ -z "$T" ]; then echo "אין סוד YT_REFRESH_TOKEN, מדלג"; echo "skip=true" >> "$GITHUB_OUTPUT"; fi
+
+      - name: התאמה והעתקה
+        if: steps.check.outputs.skip != 'true'
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          STATE_FILE: ${{ github.workspace }}/data/youtube-fix-state.json
+          REPORT_FILE: ${{ github.workspace }}/data/youtube-fix-report.csv
+        run: |
+          cd tools/youtube-uploader
+          # שיעורים חדשים בערוץ הישן מתווספים לרשימה (השיעורים הקיימים נשמרים)
+          node build-list.mjs
+          FLAGS="--fix-only"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            [ "${{ inputs.dry_run }}" = "true" ] && FLAGS="$FLAGS --dry-run"
+            [ "${{ inputs.careful }}" = "true" ] && FLAGS="$FLAGS --careful"
+          fi
+          node ginzei-youtube.mjs $FLAGS
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat "$REPORT_FILE" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: שמירת המצב והדוח בריפו
+        if: steps.check.outputs.skip != 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/youtube-fix-state.json data/youtube-fix-report.csv tools/youtube-uploader/lessons-list.json
+          if git diff --cached --quiet; then echo "אין שינוי"; exit 0; fi
+          git commit -m "עדכון מצב העתקת פרטי שיעורים [skip ci]"
+          for i in 1 2 3 4; do
+            git pull --rebase origin "${GITHUB_REF_NAME}" && git push && break
+            [ "$i" = 4 ] && exit 1
+            sleep $((i * 5))
+          done
+
+      - name: דוח (בדיקה בלבד)
+        if: steps.check.outputs.skip != 'true' && github.event_name == 'workflow_dispatch' && inputs.dry_run
+        uses: actions/upload-artifact@v4
+        with:
+          name: youtube-fix-report
+          path: data/youtube-fix-report.csv

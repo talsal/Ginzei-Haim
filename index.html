@@ -1128,7 +1128,8 @@ const VIDEOS = { ...(DATA.videos || {}), ...EXTRA.videos };
 // קובץ תקין = מחרוזת לא ריקה. רשומה בלי שמע ובלי PDF תקינים נחשבת כאילו אין קבצים (אחרת הכפתור מוריד את דף האתר עצמו)
 const validKey = (k) => typeof k === "string" && k.trim() !== "" && !k.endsWith("/");
 const mediaOf = (id) => {
-  const f = MEDIA.base && MEDIA.files[id];
+  // שיעור שהועלה מחדש לערוץ החדש יורש את הקבצים של הסרטון הישן (DATA.replaces: מזהה חדש -> ישן)
+  const f = MEDIA.base && (MEDIA.files[id] || MEDIA.files[(DATA.replaces || {})[id]]);
   if(!f) return null;
   const a = validKey(f.a) ? f.a : "";
   const p = (Array.isArray(f.p) ? f.p : []).filter(validKey);
