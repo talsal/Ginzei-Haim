@@ -1137,7 +1137,12 @@ const mediaOf = (id) => {
 };
 const mediaUrl = (key) => MEDIA.base + "/" + key.split("/").map(encodeURIComponent).join("/");
 // published = תאריך השיעור (מהכותרת/שם הקובץ, אם נמצא), uploaded = יום ההעלאה ליוטיוב. המיון והתצוגה לפי תאריך השיעור
-const lessonOf = (id) => ({ videoId: id, ...VIDEOS[id], uploaded: VIDEOS[id].published, published: VIDEOS[id].date || VIDEOS[id].published });
+// תיקון ידני מדף הניהול (data/media-overrides.json): over[id] = { d: תאריך שיעור YYYY-MM-DD, v: מזהה סרטון ביוטיוב להשמעה }. גובר על מה שנקרא אוטומטית
+const OVER = MEDIA.over || {};
+const lessonOf = (id) => {
+  const o = OVER[id] || {};
+  return { videoId: id, ...VIDEOS[id], play: o.v || id, uploaded: VIDEOS[id].published, published: o.d || VIDEOS[id].date || VIDEOS[id].published };
+};
 const playlists = [...(DATA.playlists || []), ...EXTRA.playlists].map(p => ({ ...p, lessons: p.videoIds.filter(id => VIDEOS[id]).map(lessonOf) }));
 const UPLOADS = (DATA.uploads || []).filter(id => VIDEOS[id]).map(lessonOf);
 const GROUP_ID = "__group__";
@@ -1567,7 +1572,7 @@ function songCard(song, idx, songs){
     .concat(song.views ? [`<span class="views" title="צפיות ביוטיוב"><span aria-hidden="true">👁</span> ${formatViews(song.views)} צפיות</span>`] : []).join(" · ");
   card.innerHTML = `
     <div class="thumb-wrap">
-      ${song.audioOnly ? '<div class="audio-thumb" aria-hidden="true">🎧<span>שמע בלבד</span></div>' : `<img loading="lazy" src="https://i.ytimg.com/vi/${song.videoId}/hqdefault.jpg" alt="">`}
+      ${song.audioOnly ? '<div class="audio-thumb" aria-hidden="true">🎧<span>שמע בלבד</span></div>' : `<img loading="lazy" src="https://i.ytimg.com/vi/${song.play || song.videoId}/hqdefault.jpg" alt="">`}
       ${isNew(song) ? '<span class="new-badge">חדש</span>' : ""}
       <button class="fav-btn${isFav ? " active" : ""}" title="הוסף/הסר ממועדפים" aria-label="הוסף/הסר ממועדפים" aria-pressed="${isFav}">
         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 7-6.3-3.9L5.7 21l1.7-7L2 9.2l7.1-.6L12 2z"/></svg>
@@ -1757,7 +1762,7 @@ function openModal(song, index = 0, list = [song], start = 0){
   currentSongIndex = index;
   modalTitle.textContent = song.title;
   $("modalSeries").textContent = seriesNameOf(song);
-  modalLink.href = `https://www.youtube.com/watch?v=${song.videoId}`;
+  modalLink.href = `https://www.youtube.com/watch?v=${song.play || song.videoId}`;
   setupMedia(song.videoId);
   overlay.classList.add("open");
   const audioOnly = !!song.audioOnly;
@@ -1766,7 +1771,7 @@ function openModal(song, index = 0, list = [song], start = 0){
   if(audioOnly){
     if(playerReady && ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
     mediaAudio.play().catch(() => {});
-  } else loadVideo(song.videoId, start);
+  } else loadVideo(song.play || song.videoId, start);
   updateNavButtons();
   if(!wasOpen && !restoringURL) pushPlaylistURL(true); else replaceSongURL();
   const shareText = `${song.title}\n${window.location.origin}${buildShareURL()}`;
