@@ -19,6 +19,8 @@ const DAY = 864e5;
 const MAX_DAYS_BEFORE = 3;
 const REPORT_DAYS = 60;
 
+// תאריך השיעור: מהכותרת/שם הקובץ אם נמצא (v.date), אחרת יום הפרסום ביוטיוב
+const dateOf = (v) => (v.date || v.published || "").slice(0, 10);
 const baseOf = (k) => k.split("/").pop();
 const dirOf = (k) => k.split("/").slice(0, -1).join("/");
 
@@ -57,8 +59,8 @@ export function autoMatch({ files, have, lessonsPath, config, skip = new Set(), 
   const mp3s = have.filter((k) => /\.mp3$/i.test(k) && !used.has(k) && fileDate(k) !== null);
   const pdfs = have.filter((k) => /\.pdf$/i.test(k));
 
-  const lessons = Object.keys(videos).filter((id) => !skip.has(id) && !(files[id] && files[id].a) && videos[id].published);
-  const pub = (id) => Date.parse(videos[id].published.slice(0, 10));
+  const lessons = Object.keys(videos).filter((id) => !skip.has(id) && !(files[id] && files[id].a) && dateOf(videos[id]));
+  const pub = (id) => Date.parse(dateOf(videos[id]));
 
   // כל הזוגות האפשריים, עם המרחק בימים
   const pairs = [];
@@ -90,7 +92,7 @@ export function autoMatch({ files, have, lessonsPath, config, skip = new Set(), 
   }
 
   // PDF לשיעורים שקושרו עכשיו (מהישן לחדש, כדי שהמשך הסדרה יעבור הלאה)
-  linked.sort((a, b) => videos[a].published.localeCompare(videos[b].published));
+  linked.sort((a, b) => dateOf(videos[a]).localeCompare(dateOf(videos[b])));
   for (const id of linked) {
     if (files[id].p && files[id].p.length) continue;
     const a = files[id].a;
@@ -103,21 +105,21 @@ export function autoMatch({ files, have, lessonsPath, config, skip = new Set(), 
     if (!p.length) {
       const pl = seriesOf[id];
       const prev = pl && pl.videoIds
-        .filter((v) => v !== id && videos[v] && videos[v].published < videos[id].published && files[v] && files[v].p)
-        .sort((x, y) => videos[y].published.localeCompare(videos[x].published))[0];
+        .filter((v) => v !== id && videos[v] && dateOf(videos[v]) < dateOf(videos[id]) && files[v] && files[v].p)
+        .sort((x, y) => dateOf(videos[y]).localeCompare(dateOf(videos[x])))[0];
       if (prev) p = files[prev].p;
     }
     if (p.length) files[id].p = [...p];
   }
 
   const recent = Date.now() - REPORT_DAYS * DAY;
-  const line = (id) => ({ id, date: videos[id].published, title: videos[id].title, place: placeOf[id] || "" });
+  const line = (id) => ({ id, date: dateOf(videos[id]), title: videos[id].title, place: placeOf[id] || "" });
   return {
     _note: "נוצר אוטומטית. linked = שיעורים שקיבלו קבצים לפי שם הקובץ. unmatched = שיעורים מ-60 הימים האחרונים שעוד אין להם שמע.",
     linked: linked.map((id) => ({ ...line(id), a: files[id].a, p: files[id].p || [] })),
     unmatched: lessons
       .filter((id) => !linked.includes(id) && pub(id) >= recent)
-      .sort((a, b) => videos[b].published.localeCompare(videos[a].published))
+      .sort((a, b) => dateOf(videos[b]).localeCompare(dateOf(videos[a])))
       .map((id) => ({ ...line(id), candidates: (byId.get(id) || []).map((p) => p.k) })),
   };
 }
