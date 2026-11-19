@@ -236,6 +236,7 @@ if (filtered.length) {
 // התאריך שבו ניתן השיעור, לא היום שהועלה ליוטיוב. מחפשים אותו בכותרת, בתיאור (למשל שם הקובץ JH-26-11-17), ואז בתאריך ההקלטה
 // שמוגדר בסרטון. אם אין כלום, נשאר תאריך הפרסום. הוא משמש למיון ולהתאמת קבצי שמע ו-PDF (שהשם שלהם מתחיל בתאריך השיעור).
 // נשמר ב-videos[id].date רק כשהוא שונה מתאריך הפרסום.
+if (process.env.DEBUG_DESC) for (const id of process.env.DEBUG_DESC.split(",")) if (videos[id]) console.log("DESC", id, JSON.stringify(videos[id].description.slice(0, 600)), "rec=" + videos[id].recorded);
 const dateStats = { title: 0, description: 0, recorded: 0, none: 0 };
 for (const [id, v] of Object.entries(videos)) {
   let d = parseLessonDate(v.title, v.published), src = "title";
