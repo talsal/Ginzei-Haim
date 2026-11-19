@@ -62,7 +62,7 @@
 </header>
 <main>
   <div class="help">
-    האתר מצמיד <b>לבד</b> קובץ שמע לשיעור, לפי השם שלו: התאריך בהתחלה והמקום בסוף, למשל
+    בלחיצה על <b>שינוי</b> אפשר גם לתקן את <b>תאריך</b> השיעור ואת <b>קישור הסרטון</b>. האתר מצמיד <b>לבד</b> קובץ שמע לשיעור, לפי השם שלו: התאריך בהתחלה והמקום בסוף, למשל
     <code>JH-26-11-18 Tfila - BVG.mp3</code>. אפשר לשים את הקובץ בכל תיקייה.
     מה שלא הוצמד, או הוצמד לא נכון, מתקנים כאן בלחיצה על <b>שינוי</b>. השינוי מופיע באתר תוך כ-3 דקות.
   </div>
@@ -151,6 +151,7 @@ function card(l) {
   return '<div class="card" id="c-' + esc(l.id) + '">' +
     '<div class="top"><span class="date">' + fmtDate(l.d) + '</span><span class="place">' + esc([l.pl, l.s].filter(Boolean).join(' · ')) + '</span>' + tag + '</div>' +
     '<div class="title">' + esc(l.t) + '</div>' +
+    (l.ol ? '<div class="row"><span class="ic">▶️</span><a class="fname" href="https://www.youtube.com/watch?v=' + esc(l.ol) + '" target="_blank">https://youtu.be/' + esc(l.ol) + '</a></div>' : '') +
     '<div class="row"><span class="ic">🎧</span><span>' + a + '</span></div>' +
     '<div class="row"><span class="ic">📄</span><span>' + p + '</span></div>' +
     '<div class="actions"><button type="button" data-edit="' + esc(l.id) + '">שינוי</button></div>' +
@@ -173,14 +174,26 @@ function options(list, q, l, cur) {
   return rows.map(function (k) { return '<option value="' + esc(k) + '"' + (k === cur ? ' selected' : '') + '>' + esc(base(k)) + '  —  ' + esc(dir(k)) + '</option>'; }).join('');
 }
 
+function ytId(s) {
+  s = String(s || '').trim();
+  if (/^[A-Za-z0-9_-]{11}$/.test(s)) return s;
+  var m = s.match(/(?:[?&]v=|youtu\.be\/|\/shorts\/|\/embed\/|\/live\/)([A-Za-z0-9_-]{11})(?![A-Za-z0-9_-])/);
+  return m ? m[1] : '';
+}
+
 function openEditor(id, keep) {
   var l = S.byId[id], c = $('c-' + id);
   if (!l || !c) return;
-  if (!keep || !S.ed || S.ed.id !== id) S.ed = { id: id, a: l.a, p: l.p.slice() };
+  if (!keep || !S.ed || S.ed.id !== id) S.ed = { id: id, a: l.a, p: l.p.slice(), date: l.od || '', link: l.ol ? 'https://www.youtube.com/watch?v=' + l.ol : '' };
   S.open = id;
   var e = S.ed;
   c.querySelector('.edslot').innerHTML =
     '<div class="ed">' +
+    '<h3>📅 תאריך השיעור</h3>' +
+    '<input type="date" id="edD" value="' + esc(e.date || l.d) + '" style="font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:10px">' +
+    '<div class="place" style="margin-top:4px">' + (l.od ? 'נקבע ידנית. כדי לחזור לתאריך האוטומטי, לחצו על "ביטול השינוי הידני" למטה.' : 'כרגע התאריך נקרא אוטומטית מהתיאור של הסרטון. אפשר לתקן אותו כאן.') + '</div>' +
+    '<h3>▶️ קישור הסרטון ביוטיוב</h3>' +
+    '<input type="search" id="edL" dir="ltr" placeholder="הדביקו קישור יוטיוב (או השאירו ריק)" value="' + esc(e.link) + '">' +
     '<h3>🎧 קובץ שמע</h3>' +
     '<div class="chosen" id="edA">' + (e.a ? chip(e.a, 'a') : '<div class="none">בלי קובץ שמע</div>') + '</div>' +
     '<input type="search" id="edAq" placeholder="חיפוש קובץ שמע (שם, תאריך כמו 26-11-18, או תיקייה)">' +
@@ -198,7 +211,21 @@ function openEditor(id, keep) {
   $('edPq').oninput = function () { $('edPs').innerHTML = options(S.pdf, this.value, l); };
   $('edAs').onchange = function () { e.a = this.value; openEditor(id, true); };
   $('edPs').onchange = function () { if (e.p.indexOf(this.value) < 0) e.p.push(this.value); openEditor(id, true); };
-  $('edSave').onclick = function () { save(l, { a: e.a || null, p: e.p }); };
+  $('edSave').onclick = function () {
+    var v = {};
+    if ((e.a || '') !== (l.a || '')) v.a = e.a || null;
+    if (e.p.join('\n') !== l.p.join('\n')) v.p = e.p;
+    var d = $('edD').value, curD = l.od || '';
+    if (d && d !== (curD || l.d)) v.date = d; // התאריך שונה מהנוכחי
+    var lk = $('edL').value.trim(), curL = l.ol || '';
+    if (lk) {
+      var y = ytId(lk);
+      if (!y) { status('קישור היוטיוב לא תקין. הדביקו קישור מלא, למשל https://www.youtube.com/watch?v=...', 'err'); return; }
+      if (y !== curL) v.link = y;
+    } else if (curL) v.link = '';
+    if (!Object.keys(v).length) { status('לא שונה כלום.'); return; }
+    save(l, v);
+  };
   $('edCancel').onclick = function () { S.open = null; S.ed = null; c.querySelector('.edslot').innerHTML = ''; };
   if ($('edAuto')) $('edAuto').onclick = function () { save(l, null); };
 }
@@ -213,8 +240,14 @@ function save(l, value) {
   for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
   status('שומר...');
   call('adminSave', l.id, value, l.t).then(function () {
-    if (value) { l.a = value.a || ''; l.p = value.p.slice(); l.src = 'manual'; }
-    else { l.src = ''; }
+    if (value) {
+      if ('a' in value) l.a = value.a || '';
+      if ('p' in value) l.p = value.p.slice();
+      if ('date' in value) { l.od = value.date; l.d = value.date; }
+      if ('link' in value) l.ol = value.link ? ytId(value.link) : '';
+      l.src = 'manual';
+    }
+    else { l.src = ''; l.od = ''; l.ol = ''; load(true); }
     S.open = null; S.ed = null;
     status(value ? '✓ נשמר. האתר יתעדכן בעוד כ-3 דקות.' : '✓ השינוי הידני בוטל. ההתאמה האוטומטית תחזור בעוד כ-3 דקות.', 'ok');
     render();

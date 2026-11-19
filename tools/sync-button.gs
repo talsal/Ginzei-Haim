@@ -148,7 +148,8 @@ function adminData(key) {
         seen[id] = 1;
         var f = files[id] || {};
         out.push({
-          id: id, t: v.title, d: v.published || '', pl: pl.place || '', s: pl.topic || pl.name || '',
+          id: id, t: v.title, d: ((ovr[id] && ovr[id].date) || v.date || v.published || '').slice(0, 10),
+          od: (ovr[id] && ovr[id].date) || '', ol: (ovr[id] && ovr[id].link) || '', pl: pl.place || '', s: pl.topic || pl.name || '',
           a: f.a || '', p: f.p || [], ao: !!v.audioOnly,
           src: ovr[id] ? 'manual' : auto[id] ? 'auto' : ''
         });
@@ -161,7 +162,18 @@ function adminData(key) {
   return JSON.stringify({ base: M.base || '', lessons: out, files: r2, overrides: ovr });
 }
 
-// שמירת תיקון ידני לשיעור. value = {a: 'קובץ' או null, p: [...]}, או null כדי לחזור לאוטומטי
+// מזהה סרטון ביוטיוב מתוך קישור (watch?v=, youtu.be/, shorts/, embed/) או מזהה חשוף
+function videoId_(s) {
+  s = String(s || '').trim();
+  if (/^[A-Za-z0-9_-]{11}$/.test(s)) return s;
+  var m = s.match(/(?:[?&]v=|youtu\.be\/|\/shorts\/|\/embed\/|\/live\/)([A-Za-z0-9_-]{11})(?![A-Za-z0-9_-])/);
+  if (!m) throw new Error('קישור יוטיוב לא תקין');
+  return m[1];
+}
+
+// שמירת תיקון ידני לשיעור. value = אובייקט עם רק השדות שהשתנו: a (קובץ שמע או null), p (רשימת PDF),
+// date (YYYY-MM-DD, או '' להסרה), link (קישור/מזהה יוטיוב, או '' להסרה). שדות שלא נשלחו נשארים כמו שהיו.
+// value = null: חזרה לאוטומטי לגמרי.
 function adminSave(key, id, value, title) {
   checkKey_(key);
   if (!/^[A-Za-z0-9_-]{1,40}$/.test(id)) throw new Error('מזהה שיעור לא תקין');
@@ -169,17 +181,26 @@ function adminSave(key, id, value, title) {
     var cur = readOverrides_();
     var data = cur.data || {};
     if (value) {
-      var v = {};
-      v.a = value.a ? String(value.a) : null;
-      v.p = (value.p || []).map(String);
+      var v = data[id] || {};
+      if ('a' in value) v.a = value.a ? String(value.a) : null;
+      if ('p' in value) v.p = (value.p || []).map(String);
+      if ('date' in value) {
+        if (value.date) {
+          if (!/^\d{4}-\d\d-\d\d$/.test(value.date) || isNaN(Date.parse(value.date))) throw new Error('תאריך לא תקין');
+          v.date = value.date;
+        } else delete v.date;
+      }
+      if ('link' in value) {
+        if (value.link) v.link = videoId_(value.link); else delete v.link;
+      }
       if (title) v._title = String(title).slice(0, 120);
-      data[id] = v;
+      if ('a' in v || 'p' in v || v.date || v.link) data[id] = v; else delete data[id];
     } else {
       delete data[id];
     }
     var text = JSON.stringify(data, null, 2) + '\n';
     var body = {
-      message: (value ? 'תיקון קבצים ידני' : 'חזרה להתאמה אוטומטית') + ' מדף הניהול: ' + (title || id),
+      message: (value ? 'תיקון ידני (קבצים/תאריך/קישור)' : 'חזרה להתאמה אוטומטית') + ' מדף הניהול: ' + (title || id),
       content: Utilities.base64Encode(text, Utilities.Charset.UTF_8),
       branch: 'main'
     };

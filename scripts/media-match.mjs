@@ -21,6 +21,7 @@ const REPORT_DAYS = 60;
 
 // תאריך השיעור: מהכותרת/שם הקובץ אם נמצא (v.date), אחרת יום הפרסום ביוטיוב
 const dateOf = (v) => (v.date || v.published || "").slice(0, 10);
+// תאריך שנקבע ידנית בדף הניהול גובר על התאריך שנקרא מהסרטון (dates: מזהה -> YYYY-MM-DD)
 const baseOf = (k) => k.split("/").pop();
 const dirOf = (k) => k.split("/").slice(0, -1).join("/");
 
@@ -40,7 +41,7 @@ export function fileCode(key) {
   return last.toUpperCase();
 }
 
-export function autoMatch({ files, have, lessonsPath, config, skip = new Set(), reserved = new Set() }) {
+export function autoMatch({ files, have, lessonsPath, config, skip = new Set(), reserved = new Set(), dates = {} }) {
   const ctx = { window: {} };
   vm.runInNewContext(readFileSync(lessonsPath, "utf8"), ctx);
   const { videos = {}, playlists = [] } = ctx.window.LESSONS_DATA;
@@ -54,13 +55,15 @@ export function autoMatch({ files, have, lessonsPath, config, skip = new Set(), 
     if (!seriesOf[id]) seriesOf[id] = pl;
   }
 
+  const dayOf = (id) => dates[id] || dateOf(videos[id]);
+
   const used = new Set(reserved);
   for (const f of Object.values(files)) { if (f.a) used.add(f.a); }
   const mp3s = have.filter((k) => /\.mp3$/i.test(k) && !used.has(k) && fileDate(k) !== null);
   const pdfs = have.filter((k) => /\.pdf$/i.test(k));
 
-  const lessons = Object.keys(videos).filter((id) => !skip.has(id) && !(files[id] && files[id].a) && dateOf(videos[id]));
-  const pub = (id) => Date.parse(dateOf(videos[id]));
+  const lessons = Object.keys(videos).filter((id) => !skip.has(id) && !(files[id] && files[id].a) && dayOf(id));
+  const pub = (id) => Date.parse(dayOf(id));
 
   // כל הזוגות האפשריים, עם המרחק בימים
   const pairs = [];
@@ -92,7 +95,7 @@ export function autoMatch({ files, have, lessonsPath, config, skip = new Set(), 
   }
 
   // PDF לשיעורים שקושרו עכשיו (מהישן לחדש, כדי שהמשך הסדרה יעבור הלאה)
-  linked.sort((a, b) => dateOf(videos[a]).localeCompare(dateOf(videos[b])));
+  linked.sort((a, b) => dayOf(a).localeCompare(dayOf(b)));
   for (const id of linked) {
     if (files[id].p && files[id].p.length) continue;
     const a = files[id].a;
@@ -105,21 +108,21 @@ export function autoMatch({ files, have, lessonsPath, config, skip = new Set(), 
     if (!p.length) {
       const pl = seriesOf[id];
       const prev = pl && pl.videoIds
-        .filter((v) => v !== id && videos[v] && dateOf(videos[v]) < dateOf(videos[id]) && files[v] && files[v].p)
-        .sort((x, y) => dateOf(videos[y]).localeCompare(dateOf(videos[x])))[0];
+        .filter((v) => v !== id && videos[v] && dayOf(v) < dayOf(id) && files[v] && files[v].p)
+        .sort((x, y) => dayOf(y).localeCompare(dayOf(x)))[0];
       if (prev) p = files[prev].p;
     }
     if (p.length) files[id].p = [...p];
   }
 
   const recent = Date.now() - REPORT_DAYS * DAY;
-  const line = (id) => ({ id, date: dateOf(videos[id]), title: videos[id].title, place: placeOf[id] || "" });
+  const line = (id) => ({ id, date: dayOf(id), title: videos[id].title, place: placeOf[id] || "" });
   return {
     _note: "נוצר אוטומטית. linked = שיעורים שקיבלו קבצים לפי שם הקובץ. unmatched = שיעורים מ-60 הימים האחרונים שעוד אין להם שמע.",
     linked: linked.map((id) => ({ ...line(id), a: files[id].a, p: files[id].p || [] })),
     unmatched: lessons
       .filter((id) => !linked.includes(id) && pub(id) >= recent)
-      .sort((a, b) => dateOf(videos[b]).localeCompare(dateOf(videos[a])))
+      .sort((a, b) => dayOf(b).localeCompare(dayOf(a)))
       .map((id) => ({ ...line(id), candidates: (byId.get(id) || []).map((p) => p.k) })),
   };
 }

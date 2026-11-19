@@ -260,7 +260,15 @@ let overrides = {};
 try { overrides = JSON.parse(await readFile(path.join(ROOT, "data", "media-overrides.json"), "utf8")); } catch {}
 const ovr = Object.entries(overrides).filter(([id, o]) => !id.startsWith("_") && o && typeof o === "object");
 // שיעור שנקבע לו שמע ידנית (גם "בלי שמע") לא מקבל התאמה אוטומטית, וקובץ שהוצמד ידנית לא יוצמד אוטומטית לשיעור אחר
+// תאריך ידני (YYYY-MM-DD) וקישור ידני לסרטון ביוטיוב: גוברים על מה שנקרא אוטומטית (האתר מחיל אותם מתוך media.js)
+const over = {};
+for (const [id, o] of ovr) {
+  const d = /^\d{4}-\d\d-\d\d$/.test(o.date || "") ? o.date : "";
+  const v = /^[A-Za-z0-9_-]{11}$/.test(o.link || "") ? o.link : "";
+  if (d || v) over[id] = { ...(d ? { d } : {}), ...(v ? { v } : {}) };
+}
 const report = autoMatch({
+  dates: Object.fromEntries(Object.entries(over).filter(([, x]) => x.d).map(([id, x]) => [id, x.d])),
   files, have: current, lessonsPath: path.join(ROOT, "data", "lessons.js"), config,
   skip: new Set(ovr.filter(([, o]) => "a" in o).map(([id]) => id)),
   reserved: new Set(ovr.map(([, o]) => o.a).filter(Boolean)),
@@ -282,7 +290,7 @@ console.log(`התאמה אוטומטית: ${report.linked.length} שיעורים
 const base = (config.mediaBaseUrl || "").replace(/\/+$/, "");
 await writeFile(
   path.join(ROOT, "data", "media.js"),
-  `// נוצר אוטומטית ע"י scripts/media-import.mjs, אין לערוך ידנית\nwindow.MEDIA_DATA = ${JSON.stringify({ base, files, extra })};\n`
+  `// נוצר אוטומטית ע"י scripts/media-import.mjs, אין לערוך ידנית\nwindow.MEDIA_DATA = ${JSON.stringify({ base, files, extra, ...(Object.keys(over).length ? { over } : {}) })};\n`
 );
 console.log(`הועתקו ${copied}, נכשלו ${failed}. ב-media.js: ${Object.keys(files).length} שיעורים (מהם ${Object.keys(extra.videos).length} שמע בלבד)`);
 if (failed) process.exitCode = 1;
