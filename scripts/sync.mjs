@@ -31,6 +31,44 @@ if (!KEY) {
 
 const config = JSON.parse(await readFile(CONFIG_PATH, "utf8"));
 let quota = 0;
+const dateOf = v => v.date || v.published || "";
+
+// תאריך עברי בטקסט ("ז׳ כסלו התשפ״ז", "כ״ג תמוז התשפ״ו") -> תאריך לועזי (YYYY-MM-DD).
+// מחפשים את היום הלועזי שמתאים לתאריך העברי בטווח שנה אחורה מתאריך הפרסום. בלי שנה בטקסט, רק עד 90 יום אחורה.
+const GEM = { א:1,ב:2,ג:3,ד:4,ה:5,ו:6,ז:7,ח:8,ט:9,י:10,כ:20,ך:20,ל:30,מ:40,ם:40,נ:50,ן:50,ס:60,ע:70,פ:80,ף:80,צ:90,ץ:90,ק:100,ר:200,ש:300,ת:400 };
+const gem = t => [...t.replace(/[^א-ת]/g, "")].reduce((a, c) => a + (GEM[c] || 0), 0);
+const monthSig = t => t.replace(/[^א-ת]/g, "").replace(/ו/g, "").replace(/^מר/, "");
+const hebFmt = new Intl.DateTimeFormat("he-u-ca-hebrew", { day: "numeric", month: "long", year: "numeric" });
+function parseHebrewDate(text, published) {
+  const m = (text || "").match(/(?:^|[\s.,])([א-ל][׳'"״]?[א-ט]?[׳'"״]?)\s+(?:ב)?([א-ת]+(?:\s*[׳'][א-ב]?|\s+[אב][׳'])?)\s+ה?(ת[א-ת]{1,3}[׳'"״]?[א-ת]?)/);
+  if (!m || !published) return "";
+  const day = gem(m[1]), mon = monthSig(m[2]), yr = gem(m[3]) + (gem(m[3]) < 1000 ? 5000 : 0);
+  if (day < 1 || day > 30) return "";
+  const end = Date.parse(published);
+  for (let i = 0; i <= 400; i++) {
+    const t = new Date(end - i * 864e5), parts = Object.fromEntries(hebFmt.formatToParts(t).map(x => [x.type, x.value]));
+    if (Number(parts.day) !== day || monthSig(parts.month) !== mon || Number(parts.year) !== yr) continue;
+    return t.toISOString().slice(0, 10);
+  }
+  return "";
+}
+
+// תאריך שיעור מתוך טקסט: JH-26-11-17 / 26-11-17 / 2026-11-17 (שנה-חודש-יום), או 17.11.26 / 17/11/2026 (יום.חודש.שנה).
+// נדחה תאריך מחוץ לטווח או אחרי תאריך הפרסום (שיעור לא יכול להינתן אחרי שהועלה).
+function parseLessonDate(text, published) {
+  const cands = [];
+  for (const m of (text || "").matchAll(/(?<!\d)((?:20)?\d\d)-(\d\d)-(\d\d)(?!\d)/g)) cands.push([m[1], m[2], m[3]]);
+  for (const m of (text || "").matchAll(/(?<!\d)(\d{1,2})[./](\d{1,2})[./]((?:20)?\d\d)(?!\d)/g)) cands.push([m[3], m[2], m[1]]);
+  for (let [y, mo, d] of cands) {
+    if (y.length === 2) y = "20" + y;
+    const iso = `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    const t = Date.parse(iso);
+    if (Number.isNaN(t) || new Date(t).toISOString().slice(0, 10) !== iso) continue;
+    if (iso < "2015-01-01" || (published && iso > published)) continue;
+    return iso;
+  }
+  return "";
+}
 
 async function api(endpoint, params) {
   const url = new URL(endpoint, API);
@@ -167,7 +205,7 @@ const pending = new Set(allIds);
 const pendingSig = {};
 for (let i = 0; i < allIds.length; i += 50) {
   const batch = allIds.slice(i, i + 50);
-  const data = await api("videos", { part: "snippet,contentDetails,status,statistics,liveStreamingDetails", id: batch.join(",") });
+  const data = await api("videos", { part: "snippet,contentDetails,status,statistics,liveStreamingDetails,recordingDetails", id: batch.join(",") });
   for (const v of data.items || []) {
     const privacy = v.status && v.status.privacyStatus;
     if (privacy !== "public" && privacy !== "unlisted") continue;
@@ -186,6 +224,7 @@ for (let i = 0; i < allIds.length; i += 50) {
       description: v.snippet.description || "",
       duration: live || processing ? "" : dur.text,
       published: (start || v.snippet.publishedAt || "").slice(0, 10),
+      recorded: ((v.recordingDetails && v.recordingDetails.recordingDate) || "").slice(0, 10),
       views: Number((v.statistics && v.statistics.viewCount) || 0),
       ...(live ? { live } : {}),
       ...(live === "upcoming" && start ? { startsAt: start } : {}),
@@ -213,7 +252,22 @@ if (filtered.length) {
   }
   console.log("אחרי סינון לפי הרב:", Object.keys(videos).length);
 }
-for (const v of Object.values(videos)) delete v.description;
+// ---- תאריך השיעור ----
+// התאריך שבו ניתן השיעור, לא היום שהועלה ליוטיוב. מחפשים אותו בכותרת, בתיאור (למשל שם הקובץ JH-26-11-17), ואז בתאריך ההקלטה
+// שמוגדר בסרטון. אם אין כלום, נשאר תאריך הפרסום. הוא משמש למיון ולהתאמת קבצי שמע ו-PDF (שהשם שלהם מתחיל בתאריך השיעור).
+// נשמר ב-videos[id].date רק כשהוא שונה מתאריך הפרסום.
+const dateStats = { title: 0, description: 0, recorded: 0, none: 0 };
+for (const [id, v] of Object.entries(videos)) {
+  // בתיאור לא מחפשים תאריך לועזי: שם קובץ ה-PDF שמופיע שם הוא תאריך דף המקורות, לא תאריך השיעור. בתיאור יש תאריך עברי ("ז׳ כסלו התשפ״ז").
+  let d = parseLessonDate(v.title, v.published) || parseHebrewDate(v.title, v.published), src = "title";
+  if (!d) { d = parseHebrewDate(v.description, v.published); src = "description"; }
+  if (!d && v.recorded && v.recorded >= "2015" && v.recorded <= v.published) { d = v.recorded; src = "recorded"; }
+  if (d) dateStats[src]++; else dateStats.none++;
+  if (d && d !== v.published) v.date = d;
+  delete v.recorded;
+  delete v.description;
+}
+console.log("מקור תאריך השיעור:", JSON.stringify(dateStats));
 const known = id => Object.prototype.hasOwnProperty.call(videos, id);
 console.log("סרטונים זמינים:", Object.keys(videos).length);
 
@@ -243,7 +297,7 @@ const playlists = rawPlaylists
 // סרטונים שלא נמצאים באף פלייליסט
 const inPlaylist = new Set(playlists.flatMap(p => p.videoIds));
 const uploads = [...new Set(uploadIds)].filter(known)
-  .sort((a, b) => (videos[b].published || "").localeCompare(videos[a].published || ""));
+  .sort((a, b) => dateOf(videos[b]).localeCompare(dateOf(videos[a])));
 const loose = uploads.filter(id => !inPlaylist.has(id));
 if (loose.length) {
   playlists.push({
@@ -294,10 +348,11 @@ for (const ids of Object.values(byTitle)) {
   const keep = keepers[0];
   const match = olds.filter(o => !videos[o].duration || !videos[keep].duration || Math.abs(secs(videos[o].duration) - secs(videos[keep].duration)) <= 10);
   if (!match.length) continue;
-  const old = [...match].sort((a, b) => (videos[a].published || "").localeCompare(videos[b].published || ""))[0];
+  const old = [...match].sort((a, b) => dateOf(videos[a]).localeCompare(dateOf(videos[b])))[0];
   for (const o of match) droppedBy[o] = keep;
   replaces[keep] = old;
   if (videos[old].published) videos[keep].published = videos[old].published;
+  if (videos[old].date && !videos[keep].date) videos[keep].date = videos[old].date;
   videos[keep].views = Math.max(...match.map(o => videos[o].views || 0), videos[keep].views || 0);
 }
 // החלפה ידנית: config.replacements = { "מזהה סרטון ישן": "מזהה סרטון חדש" }. עובדת גם כשהכותרות שונות.
@@ -307,6 +362,7 @@ for (const [o, n] of Object.entries(config.replacements || {})) {
   droppedBy[o] = n;
   replaces[n] = o;
   if (videos[o].published) videos[n].published = videos[o].published;
+  if (videos[o].date && !videos[n].date) videos[n].date = videos[o].date;
   videos[n].views = Math.max(videos[o].views || 0, videos[n].views || 0);
 }
 if (Object.keys(droppedBy).length) {
@@ -317,7 +373,7 @@ if (Object.keys(droppedBy).length) {
   const upl = remap(uploads).filter(id => videos[id]);
   uploads.length = 0;
   uploads.push(...upl);
-  uploads.sort((a, b) => (videos[b].published || "").localeCompare(videos[a].published || ""));
+  uploads.sort((a, b) => dateOf(videos[b]).localeCompare(dateOf(videos[a])));
 }
 for (const id of Object.keys(videos)) if ((chOf[id] ?? 0) > 0) videos[id].ch = chOf[id];
 // פלייליסט באותו שם בכמה ערוצים (למשל סדרה שהתחילה בערוץ הישן וממשיכה בערוץ האישי) מוצג כסדרה אחת, עם המזהה של הראשון

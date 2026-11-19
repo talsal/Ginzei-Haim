@@ -25,6 +25,8 @@ const DATA = loadWindowVar("data/lessons.js", "LESSONS_DATA") || { categories: [
 const MEDIA = loadWindowVar("data/media.js", "MEDIA_DATA") || { base: "", files: {} };
 const EXTRA = MEDIA.base && MEDIA.extra ? MEDIA.extra : { videos: {}, playlists: [] };
 const VIDEOS = { ...(DATA.videos || {}), ...EXTRA.videos };
+// published = תאריך השיעור (v.date אם נמצא בכותרת/שם הקובץ), uploaded = יום ההעלאה ליוטיוב
+for (const v of Object.values(VIDEOS)) { v.uploaded = v.published; if (v.date) v.published = v.date; }
 const CAT_LABEL = Object.fromEntries((DATA.categories || []).map(c => [c.key, c.label]));
 const PLAYLISTS = [...(DATA.playlists || []), ...EXTRA.playlists]
   .map(p => ({ ...p, ids: p.videoIds.filter(id => VIDEOS[id]) }))
@@ -171,7 +173,7 @@ function buildLesson(id){
     inLanguage: "he",
     url,
     author: { "@id": SITE + "/#rabbi" },
-    ...(v.published ? { uploadDate: v.published } : {}),
+    ...(v.uploaded || v.published ? { uploadDate: v.uploaded || v.published } : {}),
     ...(isoDuration(v.duration) ? { duration: isoDuration(v.duration) } : {}),
     isPartOf: main ? { "@type": "CreativeWorkSeries", name: main.name, url: SITE + seriesPath(main) } : undefined,
   };

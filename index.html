@@ -1136,7 +1136,8 @@ const mediaOf = (id) => {
   return a || p.length ? { a, p } : null;
 };
 const mediaUrl = (key) => MEDIA.base + "/" + key.split("/").map(encodeURIComponent).join("/");
-const lessonOf = (id) => ({ videoId: id, ...VIDEOS[id] });
+// published = תאריך השיעור (מהכותרת/שם הקובץ, אם נמצא), uploaded = יום ההעלאה ליוטיוב. המיון והתצוגה לפי תאריך השיעור
+const lessonOf = (id) => ({ videoId: id, ...VIDEOS[id], uploaded: VIDEOS[id].published, published: VIDEOS[id].date || VIDEOS[id].published });
 const playlists = [...(DATA.playlists || []), ...EXTRA.playlists].map(p => ({ ...p, lessons: p.videoIds.filter(id => VIDEOS[id]).map(lessonOf) }));
 const UPLOADS = (DATA.uploads || []).filter(id => VIDEOS[id]).map(lessonOf);
 const GROUP_ID = "__group__";
@@ -1519,8 +1520,8 @@ function updateViewMode(){
 }
 
 function isNew(song){
-  if(!song.published) return false;
-  return (Date.now() - new Date(song.published).getTime()) < NEW_DAYS * 86400000;
+  if(!(song.uploaded || song.published)) return false;
+  return (Date.now() - new Date(song.uploaded || song.published).getTime()) < NEW_DAYS * 86400000;
 }
 function formatViews(n){ return Number(n).toLocaleString("he-IL"); }
 function formatDate(iso){
