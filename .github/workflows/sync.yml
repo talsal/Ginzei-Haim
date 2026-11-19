@@ -41,7 +41,6 @@ jobs:
         env:
           YT_API_KEY: ${{ secrets.YT_API_KEY }}
           # בדיקה מהירה בריצות התדירות ובהפעלה חיצונית עם quick=true. כל ריצה אחרת (בוקר, ידנית, דחיפה) היא סנכרון מלא.
-          DEBUG_DESC: wtYYs-O7Q0I,-0HNmhxVbWE,CbzXjTLCXrY
           QUICK: ${{ (github.event.schedule == '7,22,37,52 * * * *' || inputs.quick == true) && '1' || '0' }}
         run: |
           if [ -z "$YT_API_KEY" ]; then

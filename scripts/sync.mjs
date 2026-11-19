@@ -33,6 +33,26 @@ const config = JSON.parse(await readFile(CONFIG_PATH, "utf8"));
 let quota = 0;
 const dateOf = v => v.date || v.published || "";
 
+// תאריך עברי בטקסט ("ז׳ כסלו התשפ״ז", "כ״ג תמוז התשפ״ו") -> תאריך לועזי (YYYY-MM-DD).
+// מחפשים את היום הלועזי שמתאים לתאריך העברי בטווח שנה אחורה מתאריך הפרסום. בלי שנה בטקסט, רק עד 90 יום אחורה.
+const GEM = { א:1,ב:2,ג:3,ד:4,ה:5,ו:6,ז:7,ח:8,ט:9,י:10,כ:20,ך:20,ל:30,מ:40,ם:40,נ:50,ן:50,ס:60,ע:70,פ:80,ף:80,צ:90,ץ:90,ק:100,ר:200,ש:300,ת:400 };
+const gem = t => [...t.replace(/[^א-ת]/g, "")].reduce((a, c) => a + (GEM[c] || 0), 0);
+const monthSig = t => t.replace(/[^א-ת]/g, "").replace(/ו/g, "").replace(/^מר/, "");
+const hebFmt = new Intl.DateTimeFormat("he-u-ca-hebrew", { day: "numeric", month: "long", year: "numeric" });
+function parseHebrewDate(text, published) {
+  const m = (text || "").match(/(?:^|[\s.,])([א-ל][׳'"״]?[א-ט]?[׳'"״]?)\s+(?:ב)?([א-ת]+(?:\s*[׳'][א-ב]?|\s+[אב][׳'])?)\s+ה?(ת[א-ת]{1,3}[׳'"״]?[א-ת]?)/);
+  if (!m || !published) return "";
+  const day = gem(m[1]), mon = monthSig(m[2]), yr = gem(m[3]) + (gem(m[3]) < 1000 ? 5000 : 0);
+  if (day < 1 || day > 30) return "";
+  const end = Date.parse(published);
+  for (let i = 0; i <= 400; i++) {
+    const t = new Date(end - i * 864e5), parts = Object.fromEntries(hebFmt.formatToParts(t).map(x => [x.type, x.value]));
+    if (Number(parts.day) !== day || monthSig(parts.month) !== mon || Number(parts.year) !== yr) continue;
+    return t.toISOString().slice(0, 10);
+  }
+  return "";
+}
+
 // תאריך שיעור מתוך טקסט: JH-26-11-17 / 26-11-17 / 2026-11-17 (שנה-חודש-יום), או 17.11.26 / 17/11/2026 (יום.חודש.שנה).
 // נדחה תאריך מחוץ לטווח או אחרי תאריך הפרסום (שיעור לא יכול להינתן אחרי שהועלה).
 function parseLessonDate(text, published) {
@@ -236,11 +256,11 @@ if (filtered.length) {
 // התאריך שבו ניתן השיעור, לא היום שהועלה ליוטיוב. מחפשים אותו בכותרת, בתיאור (למשל שם הקובץ JH-26-11-17), ואז בתאריך ההקלטה
 // שמוגדר בסרטון. אם אין כלום, נשאר תאריך הפרסום. הוא משמש למיון ולהתאמת קבצי שמע ו-PDF (שהשם שלהם מתחיל בתאריך השיעור).
 // נשמר ב-videos[id].date רק כשהוא שונה מתאריך הפרסום.
-if (process.env.DEBUG_DESC) for (const id of process.env.DEBUG_DESC.split(",")) if (videos[id]) console.log("DESC", id, JSON.stringify(videos[id].description.slice(0, 600)), "rec=" + videos[id].recorded);
 const dateStats = { title: 0, description: 0, recorded: 0, none: 0 };
 for (const [id, v] of Object.entries(videos)) {
-  let d = parseLessonDate(v.title, v.published), src = "title";
-  if (!d) { d = parseLessonDate(v.description, v.published); src = "description"; }
+  // בתיאור לא מחפשים תאריך לועזי: שם קובץ ה-PDF שמופיע שם הוא תאריך דף המקורות, לא תאריך השיעור. בתיאור יש תאריך עברי ("ז׳ כסלו התשפ״ז").
+  let d = parseLessonDate(v.title, v.published) || parseHebrewDate(v.title, v.published), src = "title";
+  if (!d) { d = parseHebrewDate(v.description, v.published); src = "description"; }
   if (!d && v.recorded && v.recorded >= "2015" && v.recorded <= v.published) { d = v.recorded; src = "recorded"; }
   if (d) dateStats[src]++; else dateStats.none++;
   if (d && d !== v.published) v.date = d;
