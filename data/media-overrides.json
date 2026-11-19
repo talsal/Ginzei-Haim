@@ -1,4 +1,16 @@
 {
   "_comment": "תיקון ידני של קבצים לשיעור, גובר על ההתאמה האוטומטית. המפתח הוא מזהה הסרטון ביוטיוב (מה שאחרי v= בקישור). a = קובץ השמע ב-R2, p = רשימת קבצי PDF. a: null או p: [] מוחקים.",
-  "_example_VIDEOID": { "a": "BVG Folder/Tfila 85/JH-26-11-11 Tfila - BVG.mp3", "p": ["BVG Folder/Tfila 85/JH-26-11-02 Kuz.pdf"] }
+  "_example_VIDEOID": {
+    "a": "BVG Folder/Tfila 85/JH-26-11-11 Tfila - BVG.mp3",
+    "p": [
+      "BVG Folder/Tfila 85/JH-26-11-02 Kuz.pdf"
+    ]
+  },
+  "CbzXjTLCXrY": {
+    "a": "BVG Folder/Tfila 85/JH-26-11-18 Tfila - Kuz - Modim - Keter - BVG.mp3",
+    "p": [
+      "Yeshiva 80 - N/Hagim/Hanuka/JH-25-12-04 Hanuka Kitsur.pdf"
+    ],
+    "_title": "ישיבה - חנוכה - שיעור 01 - ברכה א׳."
+  }
 }
