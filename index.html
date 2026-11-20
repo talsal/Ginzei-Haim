@@ -684,23 +684,15 @@
     padding:60px 16px;
   }
   /* Modal */
-  .modal-overlay{
-    display:none;
-    position:fixed;
-    inset:0;
-    background:rgba(0,0,0,0.8);
-    align-items:center;
-    justify-content:center;
-    z-index:1000;
-    padding:20px;
-  }
-  .modal-overlay.open{display:flex; animation:overlayFadeIn .18s ease;}
-  .modal-overlay.open .modal-box{animation:modalPopIn .22s cubic-bezier(.2,.8,.2,1);}
-  @keyframes overlayFadeIn{from{opacity:0;} to{opacity:1;}}
-  @keyframes modalPopIn{from{opacity:0; transform:scale(.96) translateY(8px);} to{opacity:1; transform:scale(1) translateY(0);}}
+  /* עמוד שיעור: מחליף את התצוגה הראשית בעמוד רגיל (בלי חלון צף) */
+  html{overflow-anchor:none;}
+  .modal-overlay{display:none; max-width:900px; margin:0 auto; padding:12px 16px 24px;}
+  .modal-overlay.open{display:block;}
+  body.player-open main > :not(.modal-overlay),
+  body.player-open header,
+  body.player-open .construction-banner{display:none !important;}
   .modal-box{
     width:100%;
-    max-width:800px;
     background:var(--card);
     border-radius:14px;
     overflow:hidden;
@@ -713,23 +705,6 @@
     padding:14px 18px;
   }
   .modal-header h3{margin:0;font-size:1.1rem;}
-  .modal-close{
-    width:40px;
-    height:40px;
-    flex-shrink:0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background:none;
-    border:none;
-    border-radius:50%;
-    color:var(--muted);
-    font-size:1.4rem;
-    cursor:pointer;
-    line-height:1;
-    transition:background .15s ease, color .15s ease;
-  }
-  .modal-close:hover{background:var(--card-hover); color:var(--text);}
   .video-frame-wrap{
     position:relative;
     width:100%;
@@ -804,6 +779,7 @@
     text-decoration:none;
     transition:background .15s ease, transform .1s ease;
   }
+  .modal-footer a.whatsapp-btn{color:#fff; text-decoration:none;}
   .whatsapp-btn:hover{background:#0a5c53; transform:translateY(-1px);}
   .kbd-hint{
     margin:10px 0 0;
@@ -1064,23 +1040,14 @@
   <p>הסנכרון רץ אוטומטית פעם ביום (ראו README).</p>
 </div>
 
-</main>
-
-<footer>
-  <p class="about">גנזי חיים (Ginzei Haim) הוא אתר השיעורים של הרב יואל חקון (Rabbi Joel Hakoune): שיעורים בקבלה, בכוונות התפילה, בסעודה ובמועדי השנה. <a href="lessons/">רשימת כל הסדרות והשיעורים</a> · <a href="about/">אודות הרב יואל חקון</a></p>
-  <div class="credit"><span id="updatedLine" class="updated-line"></span> <span id="visitsLine" class="updated-line"></span></div>
-  <div class="credit">פותח ע"י טל סלמן · <a href="mailto:tal.salman@gmail.com">tal.salman@gmail.com</a></div>
-</footer>
-
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+<section class="modal-overlay" id="modalOverlay" aria-label="שיעור">
+  <div class="modal-box" aria-labelledby="modalTitle">
     <div class="modal-header">
-      <button type="button" class="modal-back" id="modalBack" title="סגירת הנגן וחזרה למסך הקודם"><span class="sn-arrow" aria-hidden="true">→</span> חזרה</button>
+      <button type="button" class="modal-back" id="modalBack" title="חזרה לרשימת השיעורים"><span class="sn-arrow" aria-hidden="true">→</span> חזרה</button>
       <div class="modal-heading">
         <div class="modal-series" id="modalSeries"></div>
         <h3 id="modalTitle"></h3>
       </div>
-      <button class="modal-close" id="modalClose" aria-label="סגור">&times;</button>
     </div>
     <div class="video-frame-wrap">
       <div id="modalFrame"></div>
@@ -1106,10 +1073,18 @@
           </a>
         </div>
       </div>
-      <p class="kbd-hint">קיצורי מקלדת: Space להשהיה/נגינה · ← → למעבר בין שיעורים · Esc לסגירה · המסך לא ייכבה בזמן ניגון</p>
+      <p class="kbd-hint">קיצורי מקלדת: Space להשהיה/נגינה · ← → למעבר בין שיעורים · Esc לחזרה לרשימה · המסך לא ייכבה בזמן ניגון</p>
     </div>
   </div>
-</div>
+</section>
+
+</main>
+
+<footer>
+  <p class="about">גנזי חיים (Ginzei Haim) הוא אתר השיעורים של הרב יואל חקון (Rabbi Joel Hakoune): שיעורים בקבלה, בכוונות התפילה, בסעודה ובמועדי השנה. <a href="lessons/">רשימת כל הסדרות והשיעורים</a> · <a href="about/">אודות הרב יואל חקון</a></p>
+  <div class="credit"><span id="updatedLine" class="updated-line"></span> <span id="visitsLine" class="updated-line"></span></div>
+  <div class="credit">פותח ע"י טל סלמן · <a href="mailto:tal.salman@gmail.com">tal.salman@gmail.com</a></div>
+</footer>
 
 <script>
 // GitHub Pages שומר קבצים בזיכרון עד 10 דקות. מוסיפים לכתובת את הדקה הנוכחית, כדי ששיעור חדש יופיע מיד אחרי הפרסום.
@@ -1653,7 +1628,7 @@ function renderAll(){
 // ---- נגן ----
 const overlay = $("modalOverlay"), modalTitle = $("modalTitle"), modalLink = $("modalLink");
 const mediaRow = $("mediaRow"), mediaAudio = $("mediaAudio"), mediaDownload = $("mediaDownload"), mediaPdfs = $("mediaPdfs");
-const copyLinkBtn = $("copyLinkBtn"), whatsappBtn = $("whatsappBtn"), modalClose = $("modalClose");
+const copyLinkBtn = $("copyLinkBtn"), whatsappBtn = $("whatsappBtn");
 const prevBtn = $("prevBtn"), nextBtn = $("nextBtn"), autoplayStatus = $("autoplayStatus");
 
 let currentSongList = [];
@@ -1662,6 +1637,8 @@ let ytPlayer = null;
 let playerReady = false;
 let pending = null;
 let lastFocus = null;
+let listScrollY = 0, restoreY = null;
+try{ history.scrollRestoration = "manual"; } catch(e){}
 
 // מניעת כיבוי מסך בזמן ניגון (Screen Wake Lock)
 let wakeLock = null;
@@ -1764,7 +1741,9 @@ function openModal(song, index = 0, list = [song], start = 0){
   $("modalSeries").textContent = seriesNameOf(song);
   modalLink.href = `https://www.youtube.com/watch?v=${song.play || song.videoId}`;
   setupMedia(song.videoId);
-  overlay.classList.add("open");
+  if(!wasOpen){ listScrollY = window.scrollY; }
+  overlay.classList.add("open"); document.body.classList.add("player-open");
+  if(!wasOpen || !restoringURL) window.scrollTo(0, 0);
   const audioOnly = !!song.audioOnly;
   document.querySelector(".video-frame-wrap").classList.toggle("audio-only", audioOnly);
   modalLink.style.display = audioOnly ? "none" : "";
@@ -1779,7 +1758,7 @@ function openModal(song, index = 0, list = [song], start = 0){
   const prevPos = lastPlayed && lastPlayed.videoId === song.videoId ? lastPlayed.position : 0;
   saveLastPlayed(song, currentPlaylistId);
   if(start || prevPos) lastPlayed.position = start || prevPos;
-  modalClose.focus();
+  $("modalBack").focus({ preventScroll: true });
 }
 function playRelative(delta){
   const nextIndex = currentSongIndex + delta;
@@ -1793,7 +1772,7 @@ function togglePlayPause(){
 // fromHistory = הסגירה נגרמה ממעבר בהיסטוריה (כפתור חזרה), ולכן לא נוגעים בהיסטוריה שוב
 function closeModal(fromHistory){
   if(!overlay.classList.contains("open")) return;
-  overlay.classList.remove("open");
+  overlay.classList.remove("open"); document.body.classList.remove("player-open");
   if(playerReady && ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
   mediaAudio.pause();
   keepScreenOn(false);
@@ -1801,9 +1780,9 @@ function closeModal(fromHistory){
   // הנגן נפתח כמסך חדש: סגירה = חזרה למסך הקודם. אם נכנסו ישר מקישור לשיעור, פשוט מורידים את השיעור מהכתובת
   if(fromHistory !== true){ if(histState() && histState().m) history.back(); else replaceSongURL(); }
   renderContinueRow();
-  if(lastFocus && lastFocus.focus) lastFocus.focus();
+  restoreY = listScrollY; window.scrollTo(0, listScrollY);
+  if(lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
 }
-modalClose.onclick = () => closeModal();
 $("modalBack").onclick = () => closeModal();
 copyLinkBtn.onclick = async () => {
   const url = window.location.origin + buildShareURL();
@@ -1819,7 +1798,6 @@ copyLinkBtn.onclick = async () => {
 };
 prevBtn.onclick = () => playRelative(-1);
 nextBtn.onclick = () => playRelative(1);
-overlay.onclick = (e) => { if(e.target === overlay) closeModal(); };
 $("navBack").onclick = () => { if(navIdx > 0) history.back(); };
 $("navFwd").onclick = () => { if(navIdx < navMax) history.forward(); };
 $("navHome").onclick = () => { closeModal(true); goHome(); window.scrollTo({ top: 0, behavior: "smooth" }); };
@@ -1895,7 +1873,9 @@ $("plSort").onchange = (e) => { plSort = e.target.value; lsSet(PLSORT_KEY, plSor
 window.addEventListener("popstate", () => {
   navIdx = histState() ? histState().i : 0;
   if(navIdx > navMax){ navMax = navIdx; saveNavMax(); }
+  restoreY = null;
   applyStateFromURL(); renderAll();
+  if(restoreY !== null){ window.scrollTo(0, restoreY); restoreY = null; }
 });
 
 rebuildGroups();
