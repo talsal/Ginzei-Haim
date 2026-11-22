@@ -86,7 +86,10 @@ async function fetchOldLessons() {
 async function ourVideoIds() {
   const ctx = { window: {} };
   vm.runInNewContext(await readFile(path.join(ROOT, "data", "lessons.js"), "utf8"), ctx);
-  return new Set(Object.keys(ctx.window.LESSONS_DATA.videos || {}));
+  const data = ctx.window.LESSONS_DATA;
+  // סרטון ישן שהוחלף בסרטון מהערוץ החדש (replaces: חדש -> ישן) ממשיך להיחשב "שלנו",
+  // כדי שהקבצים שלו יישארו מקושרים (האתר מפענח אותם דרך replaces) ולא ייווצר שיעור שמע-בלבד כפול
+  return new Set([...Object.keys(data.videos || {}), ...Object.values(data.replaces || {})]);
 }
 
 // ---- 3. עזרי R2 (דרך aws CLI) ----
