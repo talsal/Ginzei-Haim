@@ -232,16 +232,6 @@
    ]
   },
   {
-   "id": "bQCfROGhEvo",
-   "date": "2026-11-16",
-   "title": "מטבע ברכה תשפ״ו - שיעור 13 - כוונות - ברוך - י״ב מדרגות רפ״ח.",
-   "place": "הר חומה",
-   "a": "Har Homa 86/Matbea Bracha/JH-26-11-16 Matbea - Baruch-12 Madregot- HH.mp3",
-   "p": [
-    "Har Homa 86/Matbea Bracha/JH-26-09-06 Matbea.pdf"
-   ]
-  },
-  {
    "id": "CbzXjTLCXrY",
    "date": "2026-11-17",
    "title": "ישיבה - חנוכה - שיעור 01 - ברכה א׳.",
@@ -250,15 +240,43 @@
    "p": [
     "Yeshiva 80 - N/Hagim/Hanuka/JH-25-12-04 Hanuka Kitsur.pdf"
    ]
+  },
+  {
+   "id": "tqSCeHhaYbY",
+   "date": "2026-11-23",
+   "title": "הרב יואל חקון  - תפילה עם נקודות הכסף - שיעור 042 - יוצר - קריאת שמע.",
+   "place": "יד בנימין",
+   "a": "Tfila - Start/JH-26-11-23 Tfila-Nekudot Hakessef-Kash-YMH.mp3",
+   "p": [
+    "Tfila - Start/JH-26-11-09 Tfila-Nekudot Hakessef-YMH.pdf"
+   ]
   }
  ],
  "unmatched": [
+  {
+   "id": "F3Y1dRLacTM",
+   "date": "2026-11-16",
+   "title": "מטבע ברכה תשפ״ו - שיעור 14 - כוונות - ברוך - נשיקין - אתה.",
+   "place": "הר חומה",
+   "candidates": [
+    "Har Homa 86/Matbea Bracha/JH-26-11-16 Matbea - Baruch-12 Madregot- HH.mp3"
+   ]
+  },
   {
    "id": "bB_1uYTDr6c",
    "date": "2026-11-16",
    "title": "הרב יואל חקון  - תפילה עם נקודות הכסף - שיעור 041 - יוצר - קריאת שמע.",
    "place": "יד בנימין",
    "candidates": []
+  },
+  {
+   "id": "bQCfROGhEvo",
+   "date": "2026-11-16",
+   "title": "מטבע ברכה תשפ״ו - שיעור 13 - כוונות - ברוך - י״ב מדרגות רפ״ח.",
+   "place": "הר חומה",
+   "candidates": [
+    "Har Homa 86/Matbea Bracha/JH-26-11-16 Matbea - Baruch-12 Madregot- HH.mp3"
+   ]
   },
   {
    "id": "VuHyb1H_gOI",
