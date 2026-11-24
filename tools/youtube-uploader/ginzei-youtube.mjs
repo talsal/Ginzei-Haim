@@ -288,9 +288,20 @@ async function fetchOldMeta(ids) {
     for (const o of j.items || []) state.oldMeta[o.id] = { title: o.snippet.title, description: o.snippet.description || "", tags: o.snippet.tags || [] };
   }
 }
+const SITE_LINE = "👍 👍 👍 תתחברו לאתר של כל השיעורים של גנזי חיים לפי הקישור: https://ginzei-haim.org 👍 👍 👍";
+// הפניה לאתר בתיאור, מיד אחרי התאריך העברי (לפני הקישור לקובץ המקורות), לפי בקשת הרב
+const withSiteLine = (desc) => {
+  const d = (desc || "").replace(/\r/g, "");
+  if (d.includes("ginzei-haim.org")) return d;
+  const lines = d.split("\n");
+  let at = lines.findIndex((l) => /תש[א-ת]["״']?[א-ת]?\.?\s*$/.test(l.trim()) && /(?:ה?תש)/.test(l));
+  if (at < 0) at = lines.length > 1 ? 1 : 0;
+  lines.splice(at + 1, 0, SITE_LINE);
+  return lines.join("\n");
+};
 const detailsOf = (entry) => {
   const old = state.oldMeta[entry.id];
-  return { title: (old && old.title) || entry.title, description: old && old.description.trim() ? old.description : entry.description, tags: (old && old.tags) || [] };
+  return { title: (old && old.title) || entry.title, description: withSiteLine(old && old.description.trim() ? old.description : entry.description), tags: (old && old.tags) || [] };
 };
 
 async function run(list) {
