@@ -9,7 +9,7 @@
 //   node ginzei-youtube.mjs --folder "נתיב"  תיקיית הוידאו (נשמרת ל-settings.json)
 //   node ginzei-youtube.mjs --limit 3        מקסימום העלאות בריצה
 //   node ginzei-youtube.mjs --careful        מתקן רק התאמות שאושרו גם לפי שם (לא לפי משך בלבד)
-//   node ginzei-youtube.mjs --login          התחברות מחדש
+//   node ginzei-youtube.mjs --login          התחברות מחדש (שימו לב: אחרי ההתחברות הכלי ממשיך מיד לשלב התיקון ולהעלאה. לבדיקה בלבד להריץ קודם עם --dry-run)
 //
 // קבצים בתיקייה: client_secret.json (מ-Google Cloud), token.json (נוצר בהתחברות), state.json (מה כבר טופל),
 // settings.json (תיקיית הוידאו, privacy), file-map.csv (אופציונלי: שם קובץ,מזהה שיעור ישן), report.csv (דוח בכל ריצה),
@@ -36,7 +36,7 @@ const NEW_CHANNEL_ID = "UCvrueqpp5TJdrfW6M0zdg7Q"; // @ginzei-haim
 const SCOPE = "https://www.googleapis.com/auth/youtube";
 const API = "https://www.googleapis.com/youtube/v3";
 const DAILY_QUOTA = 9500; // השארנו מרווח מתוך 10,000
-const UPLOAD_COST = 1600;
+const UPLOAD_COST = 1; // מכסה נפרדת: 100 העלאות ביום, עלות 1 להעלאה (תיעוד גוגל, נובמבר 2026). לא להחזיר ל-1600
 const CHUNK = 64 * 256 * 1024; // 16MB
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
