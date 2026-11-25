@@ -112,16 +112,6 @@
    ]
   },
   {
-   "id": "KbJEVQTM-7g",
-   "date": "2026-10-19",
-   "title": "הרב יואל חקון  - תפילה עם נקודות הכסף - שיעור 037 - מרכבה - יוצר.",
-   "place": "יד בנימין",
-   "a": "Yad Binyamin/Tfila - Start/JH-26-10-19 Merkava - Yotser -Y.mp3",
-   "p": [
-    "Yad Binyamin/Tfila - Start/JH-26-11-09 Tfila-Nekudot Hakessef.pdf"
-   ]
-  },
-  {
    "id": "PWLiwn-mVrU",
    "date": "2026-10-19",
    "title": "מטבע ברכה תשפ״ו - שיעור 09 - כוונות - ברוך.",
@@ -129,6 +119,16 @@
    "a": "Har Homa 86/Matbea Bracha/JH-26-10-19 Matbea - Baruch - HH.mp3",
    "p": [
     "Har Homa 86/Matbea Bracha/JH-26-09-06 Matbea.pdf"
+   ]
+  },
+  {
+   "id": "jsmAGPw2ZCg",
+   "date": "2026-10-19",
+   "title": "הרב יואל חקון  - תפילה עם נקודות הכסף - שיעור 037 - מרכבה - יוצר.",
+   "place": "יד בנימין",
+   "a": "Yad Binyamin/Tfila - Start/JH-26-10-19 Merkava - Yotser -Y.mp3",
+   "p": [
+    "Yad Binyamin/Tfila - Start/JH-26-10-19 Tfila-Nekudot Hakessef.pdf"
    ]
   },
   {
@@ -162,13 +162,13 @@
    ]
   },
   {
-   "id": "Y6noSkWDgOo",
+   "id": "VnRT6-l_iwM",
    "date": "2026-10-26",
    "title": "הרב יואל חקון  - תפילה עם נקודות הכסף - שיעור 038 - יוצר - היכלות.",
    "place": "יד בנימין",
    "a": "Yad Binyamin/Tfila - Start/JH-26-10-26 Yotser Hechalot-YMH.mp3",
    "p": [
-    "Yad Binyamin/Tfila - Start/JH-26-11-09 Tfila-Nekudot Hakessef.pdf"
+    "Yad Binyamin/Tfila - Start/JH-26-10-21 Hakdama Tfila.pdf"
    ]
   },
   {
@@ -202,13 +202,13 @@
    ]
   },
   {
-   "id": "dNy-Q5Crl40",
+   "id": "GUcjYYGwPkw",
    "date": "2026-11-02",
    "title": "הרב יואל חקון  - תפילה עם נקודות הכסף - שיעור 039 - יוצר - ציצית.",
    "place": "יד בנימין",
    "a": "Yad Binyamin/Tfila - Start/JH-26-11-02 Yotser Tsitsit-YMH.mp3",
    "p": [
-    "Yad Binyamin/Tfila - Start/JH-26-10-18 Hakdama Tfila.pdf"
+    "Yad Binyamin/Tfila - Start/JH-26-10-21 Hakdama Tfila.pdf"
    ]
   },
   {
@@ -330,6 +330,20 @@
    "date": "2026-10-25",
    "title": "תפילה תשפ״ה - שיעור 119 - ק״ש בסידור - אחד - כריעות וזקיפות - מבנה התפילה-סידור.",
    "place": "בית וגן",
+   "candidates": []
+  },
+  {
+   "id": "BPjDhV0H0tY",
+   "date": "2026-10-12",
+   "title": "הרב יואל חקון  - תפילה עם נקודות הכסף - שיעור 036 - יוצר - ברכו.",
+   "place": "יד בנימין",
+   "candidates": []
+  },
+  {
+   "id": "OJmQ6IY3EiA",
+   "date": "2026-10-05",
+   "title": "הרב יואל חקון  - תפילה עם נקודות הכסף - שיעור 035 - זמירות - אמן.",
+   "place": "יד בנימין",
    "candidates": []
   }
  ]
