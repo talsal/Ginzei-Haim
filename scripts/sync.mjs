@@ -346,7 +346,9 @@ for (const ids of Object.values(byTitle)) {
   const olds = ids.filter(id => (chOf[id] ?? 0) < newest);
   if (keepers.length !== 1 || !olds.length) continue;
   const keep = keepers[0];
-  const match = olds.filter(o => !videos[o].duration || !videos[keep].duration || Math.abs(secs(videos[o].duration) - secs(videos[keep].duration)) <= 10);
+  // שיעור שעדיין בשידור חי או בעיבוד (בלי משך) לא מוחלף בשיעור ישן באותה כותרת ולא מחליף אותו (למשל "חנוכה - שיעור 02" של שנה שעברה):
+  // מחכים עד שיש משך לשניהם. בלי זה השיעור החי נבלע בשיעור הישן ולא מופיע כשיעור חדש עד סוף השידור.
+  const match = olds.filter(o => videos[o].duration && videos[keep].duration && Math.abs(secs(videos[o].duration) - secs(videos[keep].duration)) <= 10);
   if (!match.length) continue;
   const old = [...match].sort((a, b) => dateOf(videos[a]).localeCompare(dateOf(videos[b])))[0];
   for (const o of match) droppedBy[o] = keep;
