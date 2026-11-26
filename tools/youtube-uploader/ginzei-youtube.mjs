@@ -8,6 +8,7 @@
 //   node ginzei-youtube.mjs --keep-going     כשנגמרת המכסה היומית, ממתין ללילה וממשיך לבד עד הסוף
 //   node ginzei-youtube.mjs --folder "נתיב"  תיקיית הוידאו (נשמרת ל-settings.json)
 //   node ginzei-youtube.mjs --limit 3        מקסימום העלאות בריצה
+//   node ginzei-youtube.mjs --no-fix         רק מעלה מהתיקייה, בלי לתקן סרטונים שכבר בערוץ
 //   node ginzei-youtube.mjs --careful        מתקן רק התאמות שאושרו גם לפי שם (לא לפי משך בלבד)
 //   node ginzei-youtube.mjs --login          התחברות מחדש (שימו לב: אחרי ההתחברות הכלי ממשיך מיד לשלב התיקון ולהעלאה. לבדיקה בלבד להריץ קודם עם --dry-run)
 //
@@ -255,21 +256,46 @@ async function startSession(meta, size, mime) {
 }
 
 // ---------- ריצה ----------
+// הסדרות בערוץ החדש הן הפלייליסטים שהרב פתח, בשם "הרב יואל חקון - <שם הסדרה בערוץ הישן>".
+// הכלי לעולם לא יוצר פלייליסט חדש: סדרה שאין לה פלייליסט קיים של הרב נרשמת בדוח, והשיעור לא מועלה.
+// אפשר לקבוע התאמה ידנית ב-settings.json: "playlistMap": { "שם הסדרה הישנה": "שם הפלייליסט של הרב או המזהה שלו" }.
+const RABBI_PREFIX = "הרב יואל חקון - ";
+const NO_SERIES = new Set(["שיעורים נוספים"]); // לא פלייליסט אמיתי בערוץ הישן
+const normName = (s) => String(s || "").normalize("NFC").replace(/[״"]/g, '"').replace(/[׳']/g, "'").replace(/\s+/g, " ").replace(/[\s.]+$/, "").trim();
+const stripRabbi = (s) => { const n = normName(s); const pre = normName(RABBI_PREFIX); return n.startsWith(pre) ? n.slice(pre.length).trim() : n.replace(/^הרב יואל חקון\s*-\s*/, ""); };
+async function loadPlaylists(ctx) {
+  if (ctx.playlists) return;
+  ctx.playlists = { byId: {}, byTitle: {}, rabbi: {} };
+  for (const p of await listAll("playlists", { part: "snippet", mine: "true" })) {
+    const t = normName(p.snippet.title);
+    ctx.playlists.byId[p.id] = p.snippet.title;
+    ctx.playlists.byTitle[t] = p.id;
+    if (/^הרב יואל חקון\s*-/.test(t)) ctx.playlists.rabbi[stripRabbi(t)] = p.id;
+  }
+}
+// מחזיר { ok: [[שם ישן, מזהה פלייליסט]], missing: [שמות ישנים בלי פלייליסט קיים של הרב] }
+async function resolvePlaylists(entry, ctx) {
+  await loadPlaylists(ctx);
+  const map = (await readJSON("settings.json", {})).playlistMap || {};
+  const ok = [], missing = [];
+  for (const name of entry.playlists || []) {
+    if (NO_SERIES.has(name)) continue;
+    let id = null;
+    const manual = map[name];
+    if (manual) id = ctx.playlists.byId[manual] ? manual : ctx.playlists.byTitle[normName(manual)] || null;
+    else id = ctx.playlists.rabbi[stripRabbi(name)] || null;
+    if (id) ok.push([name, id]); else missing.push(name);
+  }
+  return { ok, missing };
+}
+const missingMsg = (missing) => `אין פלייליסט קיים של הרב לסדרה: ${missing.map((m) => `"${m}"`).join(", ")} (צריך פלייליסט בשם "${RABBI_PREFIX}${missing[0]}" או playlistMap ב-settings.json). לא נוצר פלייליסט חדש.`;
 async function ensurePlaylists(videoId, entry, rec, ctx) {
-  for (const name of entry.playlists) {
+  const { ok, missing } = await resolvePlaylists(entry, ctx);
+  for (const [name, playlistId] of ok) {
     if (rec.playlists.includes(name)) continue;
-    if (!ctx.playlists) {
-      ctx.playlists = {};
-      for (const p of await listAll("playlists", { part: "snippet", mine: "true" })) ctx.playlists[p.snippet.title.trim()] = p.id;
-    }
-    if (!ctx.playlists[name]) {
-      const d = ((ctx.list.playlists || []).find((p) => p.name === name) || {}).description || "";
-      const created = await api("POST", "playlists", { part: "snippet,status" }, { snippet: { title: name, description: d }, status: { privacyStatus: "public" } }, 50);
-      ctx.playlists[name] = created.id;
-    }
     for (let attempt = 1; ; attempt++) {
       try {
-        await api("POST", "playlistItems", { part: "snippet" }, { snippet: { playlistId: ctx.playlists[name], resourceId: { kind: "youtube#video", videoId } } }, 50);
+        await api("POST", "playlistItems", { part: "snippet" }, { snippet: { playlistId, resourceId: { kind: "youtube#video", videoId } } }, 50);
         break;
       } catch (e) {
         if (attempt >= 4 || !/videoNotFound|backendError/.test(e.reason || "")) throw e;
@@ -279,7 +305,10 @@ async function ensurePlaylists(videoId, entry, rec, ctx) {
     rec.playlists.push(name);
     await save();
   }
+  if (missing.length) { playlistProblems++; console.error(`✗✗ ${videoId}: ${missingMsg(missing)}`); }
+  return missing;
 }
+let playlistProblems = 0;
 
 async function fetchOldMeta(ids) {
   const need = ids.filter((id) => !state.oldMeta[id]);
@@ -346,7 +375,7 @@ async function run(list) {
   const finish = (e) => { if (!(e instanceof Stop)) throw e; stopped = e.message; quotaStop = /מכסה|מגבלת/.test(e.message); };
   try {
     // א. תיקון פרטים לסרטונים שכבר בערוץ
-    for (const { v, entry, how, sure } of fixes) {
+    for (const { v, entry, how, sure } of args.has("--no-fix") ? [] : fixes) {
       const det = detailsOf(entry);
       const note = [how, sure ? "" : "(לפי משך בלבד)"].join(" ").trim();
       if (DRY) { rows.push([v.id, v.snippet.title, entry.id, det.title, `היה מעודכן: ${note}; סדרות: ${entry.playlists.join(" | ") || "אין"}`]); continue; }
@@ -356,7 +385,8 @@ async function run(list) {
         rec.details = true;
         await save();
       }
-      await ensurePlaylists(v.id, entry, rec, ctx);
+      const missing = await ensurePlaylists(v.id, entry, rec, ctx);
+      if (missing.length) { rows.push([v.id, v.snippet.title, entry.id, det.title, `עודכן בלי סדרה: ${missingMsg(missing)}`]); continue; }
       rec.finished = true;
       await save();
       fixed++;
@@ -374,6 +404,7 @@ async function run(list) {
   const unmatched = rows.filter((r) => /לא נמצא|לא חד/.test(r[4])).length;
   log(DRY ? `\nבדיקה בלבד: ${fixes.length} סרטונים בערוץ יתוקנו. הפירוט ב-report.csv` : `\nסיום: הועלו ${uploaded}, תוקנו ${fixed}, ללא התאמה ${unmatched}. הפירוט ב-report.csv`);
   if (stopped) log("\n" + stopped);
+  if (playlistProblems) console.error(`\n✗✗ ${playlistProblems} שיעורים בלי פלייליסט קיים של הרב (לא נוצרו פלייליסטים חדשים). הפירוט ב-report.csv`);
   return { quotaStop };
 }
 
@@ -424,7 +455,14 @@ async function uploadFolder(list, ctx, doneOld, rows, count) {
   let n = 0;
   for (const { f, entry, how } of plan) {
     const det = detailsOf(entry);
-    if (DRY) { rows.push([f, "", entry.id, det.title, `יועלה (${how}); סדרות: ${entry.playlists.join(" | ") || "אין"}`]); continue; }
+    const { ok: pls, missing } = await resolvePlaylists(entry, ctx);
+    if (missing.length) {
+      playlistProblems++;
+      console.error(`✗✗ לא מועלה: ${det.title}\n   ${missingMsg(missing)}`);
+      rows.push([f, "", entry.id, det.title, `לא הועלה: ${missingMsg(missing)}`]);
+      continue;
+    }
+    if (DRY) { rows.push([f, "", entry.id, det.title, `יועלה (${how}); פלייליסטים: ${pls.map(([, id]) => ctx.playlists.byId[id]).join(" | ") || "אין"}`]); continue; }
     if (LIMIT && n >= LIMIT) { rows.push([f, "", entry.id, det.title, "ממתין (הגעת למגבלת --limit)"]); continue; }
     const size = (await stat(f)).size;
     let sess = state.sessions[entry.id];
@@ -450,7 +488,8 @@ async function uploadFolder(list, ctx, doneOld, rows, count) {
     n++;
     count(1);
     log(`✓ הועלה: ${det.title}`);
-    await ensurePlaylists(video.id, entry, rec, ctx);
+    const lost = await ensurePlaylists(video.id, entry, rec, ctx);
+    if (lost.length) { rows.push([f, det.title, entry.id, det.title, `הועלה בלי סדרה: ${missingMsg(lost)}`]); continue; }
     rec.finished = true;
     await save();
     rows.push([f, det.title, entry.id, det.title, `הועלה (${how})`]);
@@ -471,6 +510,7 @@ try {
     state.quota = { day: ptDay(), used: 0 };
     await save();
   }
+  if (playlistProblems && !process.exitCode) process.exitCode = 3; // שיעורים דולגו כי אין להם פלייליסט קיים של הרב
 } catch (e) {
   await save().catch(() => {});
   console.error("\n" + (e instanceof Stop ? e.message : "שגיאה: " + e.message));
