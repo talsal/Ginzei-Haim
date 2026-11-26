@@ -3,7 +3,9 @@
 הטופס: https://support.google.com/youtube/contact/yt_api_form (אם הקישור השתנה: חיפוש "YouTube API Services Audit and Quota Extension Form").
 הטקסטים באנגלית, כי הטופס נבדק על ידי צוות של גוגל. את הפרטים בסוגריים מרובעים ממלאים.
 
-**למה זה חשוב:** פרויקט API שלא עבר ביקורת: (1) סרטונים שמועלים דרכו ננעלים כ-**פרטיים** (private), (2) המכסה היא 10,000 יחידות ליום, כלומר כ-6 העלאות ביום.
+**הערה (נובמבר 2026): ככל הנראה כבר לא נחוץ.** ברירת המחדל היום היא 100 העלאות ביום, והנעילה כפרטי בוטלה ב-2 בנובמבר 2026 (ראו README). המסמך נשאר למקרה שנצטרך יותר מ-100 העלאות ביום.
+
+**המצב הישן (לפני):** פרויקט API שלא עבר ביקורת: (1) סרטונים שמועלים דרכו ננעלים כ-**פרטיים** (private), (2) המכסה הייתה 10,000 יחידות ליום, כלומר כ-6 העלאות ביום.
 אם הרב מעלה ידנית ב-YouTube Studio, אין בעיה עם (1), והסקריפט במצב `--fix-only` צורך רק כ-100 סרטונים ליום ולא צריך הגדלה.
 
 ## Application / project description
@@ -19,7 +21,7 @@ The tool signs in once with OAuth as the channel owner (scope: youtube) and:
 It never reads or modifies any other user's content, does not store user data, and the OAuth token stays on the channel owner's computer. It does not use the API to collect comments, analytics or personal data.
 
 ## Quota request
-Default quota (10,000 units/day) allows about 6 uploads per day (videos.insert costs 1,600 units), so migrating about 1,250 lessons would take over 200 days.
+(Only if more than the default 100 uploads/day is needed. The current default is 100 videos.insert calls per day, so migrating about 1,250 lessons takes about 13 days.)
 We request [100,000] units per day for a limited period (about 3 months) to finish the migration. After that the tool will only upload new weekly lessons (about 6 per week), which fits the default quota.
 
 ## Compliance

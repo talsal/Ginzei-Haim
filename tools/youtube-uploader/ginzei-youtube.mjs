@@ -9,7 +9,7 @@
 //   node ginzei-youtube.mjs --folder "נתיב"  תיקיית הוידאו (נשמרת ל-settings.json)
 //   node ginzei-youtube.mjs --limit 3        מקסימום העלאות בריצה
 //   node ginzei-youtube.mjs --careful        מתקן רק התאמות שאושרו גם לפי שם (לא לפי משך בלבד)
-//   node ginzei-youtube.mjs --login          התחברות מחדש
+//   node ginzei-youtube.mjs --login          התחברות מחדש (שימו לב: אחרי ההתחברות הכלי ממשיך מיד לשלב התיקון ולהעלאה. לבדיקה בלבד להריץ קודם עם --dry-run)
 //
 // קבצים בתיקייה: client_secret.json (מ-Google Cloud), token.json (נוצר בהתחברות), state.json (מה כבר טופל),
 // settings.json (תיקיית הוידאו, privacy), file-map.csv (אופציונלי: שם קובץ,מזהה שיעור ישן), report.csv (דוח בכל ריצה),
@@ -36,7 +36,7 @@ const NEW_CHANNEL_ID = "UCvrueqpp5TJdrfW6M0zdg7Q"; // @ginzei-haim
 const SCOPE = "https://www.googleapis.com/auth/youtube";
 const API = "https://www.googleapis.com/youtube/v3";
 const DAILY_QUOTA = 9500; // השארנו מרווח מתוך 10,000
-const UPLOAD_COST = 1600;
+const UPLOAD_COST = 1; // מכסה נפרדת: 100 העלאות ביום, עלות 1 להעלאה (תיעוד גוגל, נובמבר 2026). לא להחזיר ל-1600
 const CHUNK = 64 * 256 * 1024; // 16MB
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -288,9 +288,20 @@ async function fetchOldMeta(ids) {
     for (const o of j.items || []) state.oldMeta[o.id] = { title: o.snippet.title, description: o.snippet.description || "", tags: o.snippet.tags || [] };
   }
 }
+const SITE_LINE = "👍 👍 👍 תתחברו לאתר של כל השיעורים של גנזי חיים לפי הקישור: https://ginzei-haim.org 👍 👍 👍";
+// הפניה לאתר בתיאור, מיד אחרי התאריך העברי (לפני הקישור לקובץ המקורות), לפי בקשת הרב
+const withSiteLine = (desc) => {
+  const d = (desc || "").replace(/\r/g, "");
+  if (d.includes("ginzei-haim.org")) return d;
+  const lines = d.split("\n");
+  let at = lines.findIndex((l) => /תש[א-ת]["״']?[א-ת]?\.?\s*$/.test(l.trim()) && /(?:ה?תש)/.test(l));
+  if (at < 0) at = lines.length > 1 ? 1 : 0;
+  lines.splice(at + 1, 0, SITE_LINE);
+  return lines.join("\n");
+};
 const detailsOf = (entry) => {
   const old = state.oldMeta[entry.id];
-  return { title: (old && old.title) || entry.title, description: old && old.description.trim() ? old.description : entry.description, tags: (old && old.tags) || [] };
+  return { title: (old && old.title) || entry.title, description: withSiteLine(old && old.description.trim() ? old.description : entry.description), tags: (old && old.tags) || [] };
 };
 
 async function run(list) {
