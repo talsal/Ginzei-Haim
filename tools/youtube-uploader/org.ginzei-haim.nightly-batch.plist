@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Nightly migration batch at 23:00 local time (the Mac is on Asia/Jerusalem).
+     Install: cp org.ginzei-haim.nightly-batch.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/org.ginzei-haim.nightly-batch.plist
+     Stop:    launchctl unload ~/Library/LaunchAgents/org.ginzei-haim.nightly-batch.plist
+     Fix the script path below if the repo lives elsewhere. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>org.ginzei-haim.nightly-batch</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/caffeinate</string><string>-i</string>
+    <string>/opt/homebrew/bin/python3</string>
+    <string>/Users/talsalman/dev/ginzei-haim-wt-nightly/tools/youtube-uploader/nightly-batch.py</string>
+  </array>
+  <key>StartCalendarInterval</key><dict><key>Hour</key><integer>23</integer><key>Minute</key><integer>0</integer></dict>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>GINZEI_WORK</key><string>/Users/talsalman/dev/pilot2-tool</string>
+  </dict>
+  <key>StandardOutPath</key><string>/Users/talsalman/dev/pilot2-tool/nightly-launchd.log</string>
+  <key>StandardErrorPath</key><string>/Users/talsalman/dev/pilot2-tool/nightly-launchd.log</string>
+</dict>
+</plist>

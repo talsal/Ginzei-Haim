@@ -3,3 +3,4 @@ token.json
 state.json
 settings.json
 report.csv
+__pycache__/
